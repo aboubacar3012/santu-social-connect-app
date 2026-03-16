@@ -60,7 +60,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="heart.fill" color={color} />,
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="messages"
         options={{
           title: 'Messages',
@@ -68,15 +68,15 @@ export default function TabLayout() {
             <IconSymbol size={24} name="bubble.left.and.text.bubble.right.fill" color={color} />
           ),
         }}
-      />
+      /> */}
       
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="profile"
         options={{
           title: 'Profil',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.crop.circle" color={color} />,
         }}
-      />
+      /> */}
     </Tabs>
   );
 }

@@ -1,18 +1,23 @@
-import React from 'react';
 import { Image } from 'expo-image';
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 type ProductCardProps = {
   name: string;
   price: string;
-  subtitle?: string;
+  tall?: boolean;
   thumbnail?: string;
 };
 
-export function ProductCard({ name, price, subtitle = 'En ligne', thumbnail }: ProductCardProps) {
+export function ProductCard({
+  name,
+  price,
+  tall,
+  thumbnail,
+}: ProductCardProps) {
   return (
     <View style={styles.card}>
-      <View style={styles.imageWrapper}>
+      <View style={[styles.imageWrapper, tall && styles.imageWrapperTall]}>
         {thumbnail ? (
           <Image source={{ uri: thumbnail }} style={styles.image} />
         ) : (
@@ -23,9 +28,6 @@ export function ProductCard({ name, price, subtitle = 'En ligne', thumbnail }: P
         <Text numberOfLines={2} style={styles.name}>
           {name}
         </Text>
-        <Text numberOfLines={1} style={styles.subtitle}>
-          {subtitle}
-        </Text>
         <Text style={styles.price}>{price}</Text>
       </View>
     </View>
@@ -34,7 +36,7 @@ export function ProductCard({ name, price, subtitle = 'En ligne', thumbnail }: P
 
 const styles = StyleSheet.create({
   card: {
-    width: '48%',
+    width: '100%',
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: 'white',
@@ -43,6 +45,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 180,
     backgroundColor: 'rgba(0,0,0,0.04)',
+  },
+  imageWrapperTall: {
+    height: 230,
   },
   image: {
     width: '100%',
@@ -59,10 +64,6 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: 'rgba(0,0,0,0.6)',
   },
   price: {
     fontSize: 14,
