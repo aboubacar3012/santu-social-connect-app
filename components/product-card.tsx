@@ -1,11 +1,13 @@
 import { Image } from 'expo-image';
+import { Link } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type ProductCardProps = {
   name: string;
   price: string;
   tall?: boolean;
+  id: string;
   thumbnail?: string;
 };
 
@@ -13,24 +15,27 @@ export function ProductCard({
   name,
   price,
   tall,
+  id,
   thumbnail,
 }: ProductCardProps) {
   return (
-    <View style={styles.card}>
-      <View style={[styles.imageWrapper, tall && styles.imageWrapperTall]}>
-        {thumbnail ? (
-          <Image source={{ uri: thumbnail }} style={styles.image} />
-        ) : (
-          <View style={styles.placeholder} />
-        )}
-      </View>
-      <View style={styles.info}>
-        <Text numberOfLines={2} style={styles.name}>
-          {name}
-        </Text>
-        <Text style={styles.price}>{price}</Text>
-      </View>
-    </View>
+    <Link href={{ pathname: '/product-view', params: { id } }} asChild>
+      <Pressable style={styles.card}>
+        <View style={[styles.imageWrapper, tall && styles.imageWrapperTall]}>
+          {thumbnail ? (
+            <Image source={{ uri: thumbnail }} style={styles.image} />
+          ) : (
+            <View style={styles.placeholder} />
+          )}
+        </View>
+        <View style={styles.info}>
+          <Text numberOfLines={2} style={styles.name}>
+            {name}
+          </Text>
+          <Text style={styles.price}>{price}</Text>
+        </View>
+      </Pressable>
+    </Link>
   );
 }
 

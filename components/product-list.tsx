@@ -13,6 +13,7 @@ export function ProductList() {
           {PRODUCTS.filter((_, index) => index % 2 === 0).map((product, index) => (
             <View key={product.id} style={styles.cardWrapper}>
               <ProductCard
+                id={product.id}
                 name={product.name}
                 price={product.price}
                 thumbnail={product.thumbnail}
@@ -25,6 +26,7 @@ export function ProductList() {
           {PRODUCTS.filter((_, index) => index % 2 === 1).map((product, index) => (
             <View key={product.id} style={styles.cardWrapper}>
               <ProductCard
+                id={product.id}
                 name={product.name}
                 price={product.price}
                 thumbnail={product.thumbnail}

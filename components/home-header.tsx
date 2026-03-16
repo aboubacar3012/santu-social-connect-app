@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 2,
+    gap: 12,
+  
   },
   iconButton: {
     width: 44,

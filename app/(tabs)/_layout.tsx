@@ -47,6 +47,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="favorites"
+        options={{
+          title: 'Favoris',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="heart.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="cart"
+        options={{
+          title: 'Panier',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="cart" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="orders"
         options={{
           title: 'Commandes',
@@ -54,29 +68,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="favorites"
-        options={{
-          title: 'Favoris',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="heart.fill" color={color} />,
-        }}
-      />
-      {/* <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Messages',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="bubble.left.and.text.bubble.right.fill" color={color} />
-          ),
-        }}
-      /> */}
-      
-      {/* <Tabs.Screen
-        name="profile"
+        name="profil"
         options={{
           title: 'Profil',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.crop.circle" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="person.crop.circle" color={color} />
+          ),
         }}
-      /> */}
+      />
     </Tabs>
   );
 }
