@@ -25,6 +25,14 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />      
+        <Stack.Screen
+          name="trip-view"
+          options={{
+            presentation: 'modal',
+            title: '',
+            headerShown: false,
+          }}
+        />
         </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

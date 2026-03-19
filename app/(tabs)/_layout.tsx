@@ -40,31 +40,22 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Accueil',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="square.grid.2x2" color={color} />
-          ),
+          title: 'Rechercher',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="favorites"
+        name="vos-trajets"
         options={{
-          title: 'Favoris',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="heart.fill" color={color} />,
+          title: 'Vos trajets',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="car.fill" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="cart"
+        name="publier"
         options={{
-          title: 'Panier',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="cart" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="orders"
-        options={{
-          title: 'Commandes',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="shippingbox.fill" color={color} />,
+          title: 'Publier',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="plus.circle.fill" color={color} />,
         }}
       />
       <Tabs.Screen

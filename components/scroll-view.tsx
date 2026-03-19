@@ -2,17 +2,22 @@ import type { PropsWithChildren } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type Props = PropsWithChildren<{}>;
+type Props = PropsWithChildren<{
+  centerContent?: boolean;
+}>;
 
-export default function SafeScrollView({ children }: Props) {
+export default function SafeScrollView({ children, centerContent }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          centerContent && styles.contentCentered,
+        ]}
+      >
         <View style={styles.inner}>{children}</View>
       </ScrollView>
     </SafeAreaView>
-    
   );
 }
 
@@ -21,9 +26,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
+  contentCentered: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   inner: {
     gap: 16,
