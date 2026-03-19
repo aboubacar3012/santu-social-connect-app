@@ -33,6 +33,19 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="search-results"
+          options={{
+            title: 'Résultats',
+            headerBackTitle: 'Retour',
+            headerShadowVisible: false,
+            headerStyle: {
+              backgroundColor: colorScheme === 'dark' ? '#0D0D0F' : '#EDEFF2',
+            },
+            headerTintColor: colorScheme === 'dark' ? '#ECEDEE' : '#11181C',
+            headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+          }}
+        />
         </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

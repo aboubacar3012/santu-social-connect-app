@@ -44,13 +44,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} />,
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="vos-trajets"
         options={{
           title: 'Vos trajets',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="car.fill" color={color} />,
         }}
-      />
+      /> */}
       <Tabs.Screen
         name="publier"
         options={{

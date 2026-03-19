@@ -23,6 +23,7 @@ const MAPPING: IconMapping = {
   'person.crop.circle': 'person',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'chevron.left': 'chevron-left',
   'chevron.down': 'keyboard-arrow-down',
 };
 
