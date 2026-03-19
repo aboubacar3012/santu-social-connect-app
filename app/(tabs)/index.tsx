@@ -1,4 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Keyboard,
   Modal,
@@ -12,9 +14,28 @@ import {
 import SafeScrollView from '@/components/scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { CITIES } from '@/constants/fake-trips';
+import { CITIES, FAKE_TRIPS, type Trip } from '@/constants/fake-trips';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+const RECENT_SEARCHES_KEY = 'santu_recent_searches';
+const MAX_RECENT = 8;
+
+type RecentSearch = {
+  from: string;
+  to: string;
+  places: number | null;
+  at: number;
+};
+
+function pickRandomTrips(count: number): Trip[] {
+  const copy = [...FAKE_TRIPS];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, count);
+}
 
 const PLACES_OPTIONS = [1, 2, 3];
 
@@ -89,7 +110,7 @@ function AutocompleteField({
                   style={styles.suggestionItem}
                   onPress={() => selectCity(city)}
                 >
-                  <ThemedText style={{ color: theme.text, fontSize: 16 }}>
+                  <ThemedText style={{ color: theme.text, fontSize: 15 }}>
                     {city}
                   </ThemedText>
                 </Pressable>
@@ -103,6 +124,7 @@ function AutocompleteField({
 }
 
 export default function RechercherScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
@@ -112,6 +134,55 @@ export default function RechercherScreen() {
   const [to, setTo] = useState('');
   const [places, setPlaces] = useState<number | null>(null);
   const [placesModalVisible, setPlacesModalVisible] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+  const [randomTrips] = useState(() => pickRandomTrips(3));
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
+        if (cancelled || !raw) return;
+        const parsed = JSON.parse(raw) as RecentSearch[];
+        if (Array.isArray(parsed)) setRecentSearches(parsed);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const addRecentSearch = useCallback((entry: Omit<RecentSearch, 'at'>) => {
+    setRecentSearches((prev) => {
+      const key = `${entry.from.trim().toLowerCase()}|${entry.to.trim().toLowerCase()}`;
+      const at = Date.now();
+      const filtered = prev.filter(
+        (r) =>
+          `${r.from.trim().toLowerCase()}|${r.to.trim().toLowerCase()}` !== key
+      );
+      const next: RecentSearch[] = [{ ...entry, at }, ...filtered].slice(0, MAX_RECENT);
+      void AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const applyRecent = useCallback((r: RecentSearch) => {
+    setFrom(r.from);
+    setTo(r.to);
+    setPlaces(r.places);
+  }, []);
+
+  const handleSearch = useCallback(() => {
+    const f = from.trim();
+    const t = to.trim();
+    if (f && t) {
+      addRecentSearch({ from: f, to: t, places });
+    }
+  }, [from, to, places, addRecentSearch]);
+
+  const showRecent = recentSearches.length > 0;
 
   return (
     <SafeScrollView centerContent>
@@ -167,7 +238,7 @@ export default function RechercherScreen() {
             >
               {places ?? 'Sélectionner'}
             </ThemedText>
-            <IconSymbol name="chevron.down" size={16} color={theme.icon} />
+            <IconSymbol name="chevron.down" size={14} color={theme.icon} />
           </Pressable>
         </View>
 
@@ -202,10 +273,68 @@ export default function RechercherScreen() {
 
         <Pressable
           style={[styles.searchBtn, { backgroundColor: theme.tint }]}
-          onPress={() => {}}
+          onPress={handleSearch}
         >
           <ThemedText style={styles.searchBtnText}>Rechercher</ThemedText>
         </Pressable>
+      </View>
+
+      <View style={styles.secondarySection}>
+        <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>
+          {showRecent ? 'Recherches récentes' : 'Suggestions pour vous'}
+        </ThemedText>
+        <ThemedText style={[styles.sectionHint, { color: theme.icon }]}>
+          {showRecent
+            ? 'Touchez une recherche pour la réutiliser.'
+            : 'Trois trajets au hasard — explorez Santu.'}
+        </ThemedText>
+
+        {showRecent ? (
+          <View style={styles.secondaryList}>
+            {recentSearches.map((r) => (
+              <Pressable
+                key={`${r.from}-${r.to}-${r.at}`}
+                style={[styles.recentRow, { backgroundColor: inputBg }]}
+                onPress={() => applyRecent(r)}
+              >
+                <IconSymbol name="magnifyingglass" size={18} color={theme.icon} />
+                <View style={styles.recentRowText}>
+                  <ThemedText style={[styles.recentRoute, { color: theme.text }]}>
+                    {r.from} → {r.to}
+                  </ThemedText>
+                  {r.places != null && (
+                    <ThemedText style={[styles.recentMeta, { color: theme.icon }]}>
+                      {r.places} place{r.places > 1 ? 's' : ''} min.
+                    </ThemedText>
+                  )}
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.secondaryList}>
+            {randomTrips.map((trip) => (
+              <Pressable
+                key={trip.id}
+                style={[styles.suggestRow, { backgroundColor: inputBg }]}
+                onPress={() => router.push(`/trip-view?id=${trip.id}`)}
+              >
+                <View style={styles.suggestRowMain}>
+                  <ThemedText style={[styles.suggestRoute, { color: theme.text }]}>
+                    {trip.from} → {trip.to}
+                  </ThemedText>
+                  <ThemedText style={[styles.suggestMeta, { color: theme.icon }]}>
+                    {trip.whenLabel} · {trip.departTime} · {trip.seatsLeft} place
+                    {trip.seatsLeft > 1 ? 's' : ''}
+                  </ThemedText>
+                </View>
+                <ThemedText style={[styles.suggestPrice, { color: theme.tint }]}>
+                  {trip.priceEUR}€
+                </ThemedText>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
     </SafeScrollView>
   );
@@ -230,9 +359,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   searchCard: {
-    gap: 20,
-    padding: 24,
-    borderRadius: 20,
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center',
@@ -243,10 +372,10 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   fieldsCol: {
-    gap: 18,
+    gap: 12,
   },
   field: {
-    gap: 10,
+    gap: 6,
   },
   autocompleteWrap: {
     position: 'relative',
@@ -256,8 +385,8 @@ const styles = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    marginTop: 4,
-    borderRadius: 12,
+    marginTop: 3,
+    borderRadius: 10,
     borderWidth: 1,
     maxHeight: 180,
     zIndex: 10,
@@ -266,37 +395,37 @@ const styles = StyleSheet.create({
     maxHeight: 176,
   },
   suggestionItem: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   label: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   inputWrap: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderRadius: 10,
+    paddingHorizontal: 12,
   },
   input: {
-    paddingVertical: 16,
-    fontSize: 16,
+    paddingVertical: 11,
+    fontSize: 15,
     fontWeight: '500',
   },
   filterCol: {
-    gap: 10,
+    gap: 6,
   },
   selectWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
   selectText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
   },
   modalOverlay: {
@@ -326,15 +455,77 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   searchBtn: {
-    paddingVertical: 18,
-    borderRadius: 12,
+    paddingVertical: 13,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchBtnText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: 14,
+  },
+  secondarySection: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
+    marginTop: 28,
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  sectionHint: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  secondaryList: {
+    gap: 10,
+  },
+  recentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  recentRowText: {
+    flex: 1,
+    gap: 2,
+  },
+  recentRoute: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  recentMeta: {
+    fontSize: 13,
+  },
+  suggestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  suggestRowMain: {
+    flex: 1,
+    gap: 4,
+  },
+  suggestRoute: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  suggestMeta: {
+    fontSize: 13,
+  },
+  suggestPrice: {
+    fontSize: 17,
+    fontWeight: '700',
   },
   resultsHeader: {
     marginTop: 10,
