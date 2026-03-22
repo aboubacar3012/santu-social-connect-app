@@ -6,36 +6,72 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+const PAGE_BG = { light: '#EBECEF', dark: '#0A0A0C' } as const;
+const SURFACE = { light: '#FFFFFF', dark: '#141416' } as const;
+const MUTED = { light: '#6B7280', dark: '#8B9098' } as const;
+const ON_TINT = '#111111';
+
+function SectionCard({
+  children,
+  surface,
+  borderColor,
+  style,
+}: {
+  children: React.ReactNode;
+  surface: string;
+  borderColor: string;
+  style?: object;
+}) {
+  return (
+    <View style={[styles.sectionCard, { backgroundColor: surface, borderColor }, style]}>{children}</View>
+  );
+}
+
+function SectionKicker({ children, color }: { children: string; color: string }) {
+  return <ThemedText style={[styles.sectionKicker, { color }]}>{children}</ThemedText>;
+}
+
 function VerifyRow({
   icon,
   title,
   subtitle,
   done,
-  textColor,
-  iconColor,
+  themeText,
+  muted,
+  iconWrapBg,
+  tint,
+  showDivider,
+  borderColor,
 }: {
   icon: React.ComponentProps<typeof MaterialIcons>['name'];
   title: string;
   subtitle: string;
   done: boolean;
-  textColor: string;
-  iconColor: string;
+  themeText: string;
+  muted: string;
+  iconWrapBg: string;
+  tint: string;
+  showDivider?: boolean;
+  borderColor: string;
 }) {
   return (
-    <View style={styles.verifyRow}>
-      <View style={[styles.verifyIconWrap, { backgroundColor: 'rgba(0,0,0,0.05)' }]}>
-        <MaterialIcons name={icon} size={18} color={iconColor} />
+    <>
+      <View style={styles.verifyRow}>
+        <View style={[styles.verifyIconWrap, { backgroundColor: iconWrapBg }]}>
+          <MaterialIcons name={icon} size={20} color={muted} />
+        </View>
+        <View style={styles.verifyText}>
+          <ThemedText style={[styles.verifyTitle, { color: themeText }]}>{title}</ThemedText>
+          <ThemedText style={[styles.verifySubtitle, { color: muted }]}>{subtitle}</ThemedText>
+        </View>
+        <MaterialIcons
+          name={done ? 'check-circle' : 'radio-button-unchecked'}
+          size={22}
+          color={done ? tint : muted}
+        />
       </View>
-      <View style={styles.verifyText}>
-        <ThemedText style={[styles.verifyTitle, { color: textColor }]}>{title}</ThemedText>
-        <ThemedText style={styles.verifySubtitle}>{subtitle}</ThemedText>
-      </View>
-      <MaterialIcons
-        name={done ? 'check-circle' : 'radio-button-unchecked'}
-        size={20}
-        color={done ? '#2E7D32' : iconColor}
-      />
-    </View>
+      {showDivider ? <View style={[styles.rowDivider, { backgroundColor: borderColor }]} /> : null}
+    </>
   );
 }
 
@@ -43,229 +79,312 @@ export default function ProfilScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
-  const cardBg = isDark ? '#1B1B1E' : '#FFFFFF';
-  const accent = '#00A0DC';
+  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
+  const surface = isDark ? SURFACE.dark : SURFACE.light;
+  const muted = isDark ? MUTED.dark : MUTED.light;
+  const borderSubtle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const iconWrapBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+  const tintSoft = isDark ? 'rgba(230,168,0,0.14)' : 'rgba(230,168,0,0.18)';
+  const avatarRing = isDark ? 'rgba(230,168,0,0.4)' : 'rgba(230,168,0,0.5)';
+
+  const prefs = ['Discussion modérée', 'Musique OK', 'Pause possible', 'Non-fumeur'];
 
   return (
-    <SafeScrollView keyboardAvoiding>
-      <View style={styles.header}>
-        <ThemedText style={[styles.title, { color: theme.text }]}>Profil</ThemedText>
-        <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-          Votre fiche conducteur, comme sur BlaBlaCar.
+    <SafeScrollView screenBackgroundColor={pageBg}>
+      <View style={styles.hero}>
+        <ThemedText style={[styles.heroKicker, { color: muted }]}>COMPTE</ThemedText>
+        <ThemedText style={[styles.heroTitle, { color: theme.text }]}>Profil</ThemedText>
+        <ThemedText style={[styles.heroSubtitle, { color: muted }]}>
+          Votre identité et vos préférences pour rassurer les passagers.
         </ThemedText>
       </View>
 
-      <View style={[styles.card, { backgroundColor: cardBg }]}>
-        <View style={styles.topRow}>
-          <View style={[styles.avatar, { backgroundColor: isDark ? '#2A2A2D' : '#EAF6FB' }]}>
-            <ThemedText style={[styles.avatarText, { color: accent }]}>AB</ThemedText>
+      <SectionCard surface={surface} borderColor={borderSubtle}>
+        <View style={styles.kickerBlock}>
+          <SectionKicker color={muted}>IDENTITÉ</SectionKicker>
+        </View>
+        <View style={styles.identityRow}>
+          <View
+            style={[
+              styles.avatar,
+              {
+                backgroundColor: isDark ? '#1C1C1F' : '#F0F1F4',
+                borderColor: avatarRing,
+              },
+            ]}
+          >
+            <ThemedText style={[styles.avatarText, { color: theme.tint }]}>AB</ThemedText>
           </View>
-          <View style={styles.topText}>
+          <View style={styles.identityText}>
             <ThemedText style={[styles.name, { color: theme.text }]}>Aboubacar Bah</ThemedText>
-            <ThemedText style={[styles.smallMuted, { color: theme.icon }]}>
-              Membre depuis mars 2024
-            </ThemedText>
+            <ThemedText style={[styles.smallMuted, { color: muted }]}>Membre depuis mars 2024</ThemedText>
           </View>
         </View>
-      </View>
+      </SectionCard>
 
-      <View style={[styles.card, { backgroundColor: cardBg }]}>
-        <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>Vérifications</ThemedText>
-
+      <SectionCard surface={surface} borderColor={borderSubtle}>
+        <View style={styles.kickerBlock}>
+          <SectionKicker color={muted}>VÉRIFICATIONS</SectionKicker>
+        </View>
         <VerifyRow
           icon="mail"
           title="Adresse e-mail vérifiée"
           subtitle="aboubacar@example.com"
           done
-          textColor={theme.text}
-          iconColor={theme.icon}
+          themeText={theme.text}
+          muted={muted}
+          iconWrapBg={iconWrapBg}
+          tint={theme.tint}
+          showDivider
+          borderColor={borderSubtle}
         />
         <VerifyRow
           icon="phone"
           title="Numéro de téléphone vérifié"
           subtitle="+224 621 00 00 00"
           done
-          textColor={theme.text}
-          iconColor={theme.icon}
+          themeText={theme.text}
+          muted={muted}
+          iconWrapBg={iconWrapBg}
+          tint={theme.tint}
+          showDivider
+          borderColor={borderSubtle}
         />
         <VerifyRow
           icon="badge"
           title="Pièce d'identité"
           subtitle="Ajoutez votre pièce pour rassurer les passagers"
           done={false}
-          textColor={theme.text}
-          iconColor={theme.icon}
+          themeText={theme.text}
+          muted={muted}
+          iconWrapBg={iconWrapBg}
+          tint={theme.tint}
+          borderColor={borderSubtle}
         />
-      </View>
+      </SectionCard>
 
-      <View style={[styles.card, { backgroundColor: cardBg }]}>
-        <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>Préférences</ThemedText>
-        <View style={styles.tagsWrap}>
-          <View style={[styles.tag, { backgroundColor: isDark ? '#2A2A2D' : '#F3F4F6' }]}>
-            <ThemedText style={[styles.tagText, { color: theme.text }]}>Discussion modérée</ThemedText>
-          </View>
-          <View style={[styles.tag, { backgroundColor: isDark ? '#2A2A2D' : '#F3F4F6' }]}>
-            <ThemedText style={[styles.tagText, { color: theme.text }]}>Musique OK</ThemedText>
-          </View>
-          <View style={[styles.tag, { backgroundColor: isDark ? '#2A2A2D' : '#F3F4F6' }]}>
-            <ThemedText style={[styles.tagText, { color: theme.text }]}>Pause possible</ThemedText>
-          </View>
-          <View style={[styles.tag, { backgroundColor: isDark ? '#2A2A2D' : '#F3F4F6' }]}>
-            <ThemedText style={[styles.tagText, { color: theme.text }]}>Non-fumeur</ThemedText>
-          </View>
+      <SectionCard surface={surface} borderColor={borderSubtle}>
+        <View style={styles.kickerBlock}>
+          <SectionKicker color={muted}>PRÉFÉRENCES</SectionKicker>
         </View>
-      </View>
+        <View style={styles.tagsWrap}>
+          {prefs.map((label) => (
+            <View
+              key={label}
+              style={[
+                styles.tagPill,
+                {
+                  borderColor: borderSubtle,
+                  backgroundColor: tintSoft,
+                },
+              ]}
+            >
+              <ThemedText style={[styles.tagText, { color: theme.text }]}>{label}</ThemedText>
+            </View>
+          ))}
+        </View>
+      </SectionCard>
 
-      <View style={[styles.card, { backgroundColor: cardBg }]}>
-        <ThemedText style={[styles.sectionTitle, { color: theme.text }]}>Véhicule principal</ThemedText>
+      <SectionCard surface={surface} borderColor={borderSubtle}>
+        <View style={styles.kickerBlock}>
+          <SectionKicker color={muted}>VÉHICULE PRINCIPAL</SectionKicker>
+        </View>
         <View style={styles.carRow}>
-          <View style={[styles.carIcon, { backgroundColor: isDark ? '#2A2A2D' : '#EEF2FF' }]}>
-            <MaterialIcons name="directions-car" size={20} color={accent} />
+          <View
+            style={[
+              styles.carIconHub,
+              {
+                backgroundColor: isDark ? '#1C1C1F' : '#F0F1F4',
+                borderColor: isDark ? 'rgba(230,168,0,0.35)' : 'rgba(230,168,0,0.45)',
+              },
+            ]}
+          >
+            <MaterialIcons name="directions-car" size={22} color={theme.tint} />
           </View>
           <View style={styles.carText}>
             <ThemedText style={[styles.carTitle, { color: theme.text }]}>Toyota RAV4 · Gris</ThemedText>
-            <ThemedText style={[styles.smallMuted, { color: theme.icon }]}>
-              4 places · Climatisation
-            </ThemedText>
+            <ThemedText style={[styles.smallMuted, { color: muted }]}>4 places · Climatisation</ThemedText>
           </View>
         </View>
-      </View>
+      </SectionCard>
 
-      <Pressable style={[styles.primaryBtn, { backgroundColor: accent }]}>
-        <MaterialIcons name="edit" size={18} color="#FFFFFF" />
-        <ThemedText style={styles.primaryBtnText}>Modifier mon profil</ThemedText>
+      <Pressable
+        style={({ pressed }) => [
+          styles.primaryCta,
+          { backgroundColor: theme.tint, opacity: pressed ? 0.92 : 1 },
+        ]}
+      >
+        <MaterialIcons name="edit" size={22} color={ON_TINT} />
+        <ThemedText style={styles.primaryCtaText}>Modifier mon profil</ThemedText>
       </Pressable>
+
+      <View style={styles.tabBarSpacer} />
     </SafeScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    marginBottom: 14,
-    gap: 4,
+  hero: {
+    marginBottom: 4,
+    gap: 8,
   },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.6,
+  heroKicker: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2.4,
   },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+  heroTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    letterSpacing: -1,
+    lineHeight: 38,
   },
-  card: {
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 12,
+  heroSubtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '500',
+    maxWidth: 340,
+  },
+  sectionCard: {
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 4,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
     shadowRadius: 14,
-    elevation: 6,
+    elevation: 2,
   },
-  topRow: {
+  kickerBlock: {
+    marginBottom: 14,
+  },
+  sectionKicker: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  identityRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
     alignItems: 'center',
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth * 2,
   },
   avatarText: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
-  topText: {
+  identityText: {
     flex: 1,
-    gap: 4,
+    gap: 6,
+    minWidth: 0,
   },
   name: {
     fontSize: 20,
     fontWeight: '700',
+    letterSpacing: -0.3,
   },
   smallMuted: {
-    fontSize: 13,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    marginBottom: 10,
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 20,
   },
   verifyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
+    gap: 14,
+    paddingVertical: 12,
   },
   verifyIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   verifyText: {
     flex: 1,
-    gap: 1,
+    gap: 4,
+    minWidth: 0,
   },
   verifyTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
+    letterSpacing: -0.2,
   },
   verifySubtitle: {
-    fontSize: 12,
-    opacity: 0.75,
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  rowDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 58,
   },
   tagsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
-  tag: {
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  tagPill: {
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: StyleSheet.hairlineWidth * 2,
   },
   tagText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
   },
   carRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 14,
   },
-  carIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  carIconHub: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    flexShrink: 0,
   },
   carText: {
     flex: 1,
-    gap: 2,
+    gap: 4,
+    minWidth: 0,
   },
   carTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
-  primaryBtn: {
-    borderRadius: 14,
-    paddingVertical: 14,
+  primaryCta: {
+    marginTop: 8,
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 2,
+    gap: 10,
   },
-  primaryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
+  primaryCtaText: {
+    color: ON_TINT,
+    fontSize: 16,
     fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  tabBarSpacer: {
+    height: 88,
   },
 });
