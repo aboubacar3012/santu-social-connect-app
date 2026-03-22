@@ -1,8 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import SafeScrollView from '@/components/scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { filterTripsBySearch, type Trip } from '@/constants/fake-trips';
@@ -59,7 +58,11 @@ export default function SearchResultsScreen() {
   const routeLabel = `${from.trim()} → ${to.trim()}`;
 
   return (
-    <SafeScrollView screenBackgroundColor={pageBg}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      contentContainerStyle={styles.scrollViewContent}
+    >
       <View style={styles.hero}>
         <ThemedText style={[styles.heroTitle, { color: theme.text }]}>{routeLabel}</ThemedText>
         <ThemedText style={[styles.heroMeta, { color: theme.icon }]}>
@@ -114,7 +117,7 @@ export default function SearchResultsScreen() {
           ))}
         </View>
       )}
-    </SafeScrollView>
+    </ScrollView>
   );
 }
 
@@ -201,6 +204,11 @@ function TripResultRow({
 }
 
 const styles = StyleSheet.create({
+  scrollViewContent: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
   hero: {
     marginBottom: 8,
     gap: 6,
