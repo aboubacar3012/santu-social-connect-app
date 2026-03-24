@@ -1,48 +1,31 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import React from 'react';
-import { Platform, Pressable, StatusBar, StyleSheet, View } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useRouter } from 'expo-router';
 
-function SocialButton({
-  label,
-  icon,
-  backgroundColor,
-  textColor,
-  borderColor,
-  iconBg,
-  iconBorder,
-  onPress,
-}: {
-  label: string;
-  icon: React.ComponentProps<typeof FontAwesome>['name'];
-  backgroundColor: string;
-  textColor: string;
-  borderColor?: string;
-  iconBg: string;
-  iconBorder: string;
-  onPress?: () => void;
-}) {
+const ON_TINT = '#111111';
 
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.socialBtn,
-        { backgroundColor, borderColor: borderColor ?? 'transparent' },
-        pressed ? { transform: [{ scale: 0.99 }], opacity: 0.96 } : null,
-      ]}
-      onPress={onPress}
-    >
-      <View style={[styles.socialIconWrap, { backgroundColor: iconBg, borderColor: iconBorder }]}>
-        <FontAwesome name={icon} size={20} color={textColor} />
-      </View>
-      <ThemedText style={[styles.socialBtnText, { color: textColor }]}>{label}</ThemedText>
-    </Pressable>
-  );
+function formatPhoneDisplay(raw: string): string {
+  const d = raw.replace(/\D/g, '').slice(0, 12);
+  if (d.length === 0) return '';
+  const head = d.slice(0, Math.min(3, d.length));
+  const rest = d.slice(3);
+  const pairs = rest.match(/.{1,2}/g) ?? [];
+  return [head, ...pairs].join(' ');
 }
 
 export default function AuthScreen() {
@@ -51,79 +34,149 @@ export default function AuthScreen() {
   const theme = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const onPress = () => {
-    router.push('/(tabs)');
-  };
+
+  const [phoneDigits, setPhoneDigits] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   const bg = theme.background;
   const pageTint = theme.tint;
   const cardBg = isDark ? 'rgba(20,22,26,0.86)' : 'rgba(255,255,255,0.92)';
   const cardBorder = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)';
   const subtleText = isDark ? 'rgba(236,237,238,0.50)' : 'rgba(17,24,28,0.45)';
-  const iconBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
-  const iconBorder = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)';
+  const fieldBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+  const fieldBorder = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)';
   const statusH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : insets.top;
+
+  const phoneOk = useMemo(() => {
+    const n = phoneDigits.replace(/\D/g, '');
+    return n.length >= 9;
+  }, [phoneDigits]);
+
+  const passwordOk = useMemo(() => /^\d{8,}$/.test(password), [password]);
+
+  const canSubmit = phoneOk && passwordOk;
+
+  const phoneDisplay = useMemo(() => formatPhoneDisplay(phoneDigits), [phoneDigits]);
+
+  const onSubmit = useCallback(() => {
+    if (!canSubmit) return;
+    router.push('/(tabs)');
+  }, [canSubmit, router]);
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>
       <StatusBar translucent backgroundColor="transparent" barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* Décor linéaire (sans cercles) */}
       <View pointerEvents="none" style={styles.decor}>
-        <View style={[styles.decorLine1, { backgroundColor: pageTint, opacity: isDark ? 0.20 : 0.16, top: statusH + 6 }]} />
-        <View style={[styles.decorLine2, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', top: statusH + 34 }]} />
+        <View
+          style={[
+            styles.decorLine1,
+            { backgroundColor: pageTint, opacity: isDark ? 0.2 : 0.16, top: statusH + 6 },
+          ]}
+        />
+        <View
+          style={[
+            styles.decorLine2,
+            {
+              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+              top: statusH + 34,
+            },
+          ]}
+        />
       </View>
 
-      {/* Contenu */}
-      <View style={[styles.content, { paddingTop: statusH + 34 }]}>
-        <View style={styles.titleBlock}>
-          <ThemedText style={[styles.tag, { color: isDark ? 'rgba(255,205,0,0.60)' : 'rgba(212,175,55,0.70)' }]}>
-            Santu
-          </ThemedText>
-          <ThemedText style={[styles.title, { color: theme.text }]}>Authentification</ThemedText>
-          <ThemedText style={[styles.subtitle, { color: subtleText }]}>
-            Connectez-vous pour commencer à voyager en Guinée.
-          </ThemedText>
-        </View>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: statusH + 28, paddingBottom: Math.max(insets.bottom + 16, 28) },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.titleBlock}>
+            <ThemedText
+              style={[
+                styles.tag,
+                { color: isDark ? 'rgba(255,205,0,0.6)' : 'rgba(212,175,55,0.7)' },
+              ]}
+            >
+              Santu
+            </ThemedText>
 
-        <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-          <SocialButton
-            label="Continuer avec Facebook"
-            icon="facebook"
-            backgroundColor="#1877F2"
-            textColor="#FFFFFF"
-            iconBg={iconBg}
-            iconBorder={iconBorder}
-            onPress={onPress}
-          />
-          <SocialButton
-            label="Continuer avec Google"
-            icon="google"
-            backgroundColor={isDark ? '#1C1C1F' : '#FFFFFF'}
-            textColor={isDark ? '#FFFFFF' : '#1F2937'}
-            borderColor={isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)'}
-            iconBg={iconBg}
-            iconBorder={iconBorder}
-            onPress={onPress}
-          />
-          <SocialButton
-            label="Continuer avec Apple"
-            icon="apple"
-            backgroundColor={isDark ? '#FFFFFF' : '#0A0A0A'}
-            textColor={isDark ? '#0A0A0A' : '#FFFFFF'}
-            iconBg={iconBg}
-            iconBorder={iconBorder}
-            onPress={onPress}
-          />
-        </View>
+            <ThemedText style={[styles.title, { color: theme.text }]}>Connexion</ThemedText>
+          </View>
 
-        {/* Séparateur accent */}
-        <View style={[styles.accentLine, { backgroundColor: pageTint, opacity: isDark ? 0.30 : 0.35 }]} />
+          <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+            <ThemedText style={[styles.fieldLabel, { color: subtleText }]}>NUMÉRO DE TÉLÉPHONE</ThemedText>
+            <View style={[styles.inputShell, { backgroundColor: fieldBg, borderColor: fieldBorder }]}>
+              <MaterialIcons name="phone-iphone" size={22} color={subtleText} style={styles.inputIcon} />
+              <TextInput
+                value={phoneDisplay}
+                onChangeText={(t) => setPhoneDigits(t.replace(/\D/g, '').slice(0, 12))}
+                placeholder="+224 621 00 00 00"
+                placeholderTextColor={subtleText}
+                keyboardType="phone-pad"
+                style={[styles.input, { color: theme.text }]}
+                autoComplete="tel"
+                textContentType="telephoneNumber"
+              />
+            </View>
 
-        {/* Légal */}
-        <ThemedText style={[styles.legal, { color: subtleText, paddingBottom: Math.max(insets.bottom + 8, 28) }]}>
-          En continuant, vous acceptez nos conditions d&apos;utilisation et notre politique de confidentialité.
-        </ThemedText>
-      </View>
+            <ThemedText style={[styles.fieldLabel, { color: subtleText }]}>MOT DE PASSE</ThemedText>
+            <View style={[styles.inputShell, { backgroundColor: fieldBg, borderColor: fieldBorder }]}>
+              <MaterialIcons name="dialpad" size={22} color={subtleText} style={styles.inputIcon} />
+              <TextInput
+                value={password}
+                onChangeText={(t) => setPassword(t.replace(/\D/g, '').slice(0, 8))}
+                placeholder="6 chiffres minimum"
+                placeholderTextColor={subtleText}
+                keyboardType="number-pad"
+                style={[styles.input, { color: theme.text }]}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="off"
+              />
+              <Pressable
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={12}
+                accessibilityLabel={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                <MaterialIcons
+                  name={showPassword ? 'visibility-off' : 'visibility'}
+                  size={22}
+                  color={subtleText}
+                />
+              </Pressable>
+            </View>
+
+            <Pressable
+              onPress={onSubmit}
+              disabled={!canSubmit}
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                {
+                  backgroundColor: canSubmit ? pageTint : fieldBg,
+                  opacity: pressed && canSubmit ? 0.92 : 1,
+                },
+              ]}
+            >
+              <MaterialIcons name="arrow-forward" size={22} color={canSubmit ? ON_TINT : subtleText} />
+              <ThemedText style={[styles.primaryBtnText, { color: canSubmit ? ON_TINT : subtleText }]}>
+                Continuer
+              </ThemedText>
+            </Pressable>
+          </View>
+
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -132,7 +185,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-
+  flex: {
+    flex: 1,
+  },
   decor: {
     position: 'absolute',
     left: 0,
@@ -155,79 +210,96 @@ const styles = StyleSheet.create({
     height: 1,
     transform: [{ rotate: '-14deg' }],
   },
-
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 28,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 5,
   },
-  titleBlock: { alignItems: 'center' },
+  titleBlock: {
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 430,
+    marginBottom: 8,
+  },
   tag: {
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 4,
     textTransform: 'uppercase',
-    marginBottom: 12,
+    marginBottom: 16,
     lineHeight: 16,
   },
-
   title: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: '900',
-    letterSpacing: -0.9,
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '800',
+    letterSpacing: -0.8,
     textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 15,
-    lineHeight: 23,
+    lineHeight: 22,
     textAlign: 'center',
     letterSpacing: 0.1,
+    paddingHorizontal: 8,
   },
-
-  /* Carte */
   card: {
     width: '100%',
     maxWidth: 430,
     borderRadius: 22,
-    padding: 14,
+    padding: 18,
     borderWidth: 1,
-    gap: 10,
+    gap: 14,
     shadowColor: '#000',
-    shadowOpacity: 0.10,
+    shadowOpacity: 0.1,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 8 },
     elevation: 10,
-    marginVertical: 18,
+    marginTop: 22,
+    marginBottom: 18,
   },
-  socialBtn: {
-    minHeight: 58,
-    borderRadius: 16,
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.8,
+    marginBottom: -4,
+  },
+  inputShell: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth * 2,
     paddingHorizontal: 14,
+    minHeight: 54,
   },
-  socialIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    borderWidth: 1,
+  inputIcon: {
+    marginRight: 10,
+    opacity: 0.85,
+  },
+  input: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: '600',
+    paddingVertical: 12,
+    letterSpacing: -0.2,
+  },
+  primaryBtn: {
+    minHeight: 54,
+    borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    gap: 10,
+    marginTop: 4,
   },
-  socialBtnText: {
-    fontSize: 15,
-    lineHeight: 22,
+  primaryBtnText: {
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
-
   accentLine: {
     width: 40,
     height: 3,
@@ -235,11 +307,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 16,
   },
-
   legal: {
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
     letterSpacing: 0.1,
+    maxWidth: 400,
+    paddingHorizontal: 8,
   },
 });
