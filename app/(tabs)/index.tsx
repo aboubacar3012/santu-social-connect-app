@@ -242,8 +242,8 @@ export default function RechercherScreen() {
               backgroundColor: canSearch
                 ? theme.tint
                 : isDark
-                ? 'rgba(255,255,255,0.08)'
-                : 'rgba(0,0,0,0.07)',
+                  ? 'rgba(255,255,255,0.08)'
+                  : 'rgba(0,0,0,0.07)',
             },
           ]}
           onPress={handleSearch}

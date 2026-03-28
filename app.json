@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "santu",
-    "slug": "santu",
+    "name": "Santu Go",
+    "slug": "santu-go",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "santu",
+    "scheme": "santu-go",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -27,6 +27,13 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "L’app accède à vos photos pour définir votre profil et vos pièces d’identité.",
+          "cameraPermission": "L’app utilise l’appareil photo pour prendre une photo de profil ou un justificatif."
+        }
+      ],
       [
         "expo-splash-screen",
         {

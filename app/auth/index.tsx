@@ -174,19 +174,6 @@ export default function AuthScreen() {
     <View style={[styles.root, { backgroundColor: bg }]}>
       <StatusBar translucent backgroundColor="transparent" barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      <View pointerEvents="none" style={styles.decor}>
-        <View style={[styles.decorTopRule, { top: statusH + 10, backgroundColor: cardBorder }]} />
-        <View
-          style={[
-            styles.decorAccent,
-            {
-              top: statusH + 10,
-              backgroundColor: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(23,26,32,0.85)',
-            },
-          ]}
-        />
-      </View>
-
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -202,7 +189,7 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.titleBlock}>
-            <ThemedText style={[styles.tag, { color: mutedText }]}>Santu</ThemedText>
+            <ThemedText style={[styles.tag, { color: mutedText }]}>Santu Go</ThemedText>
 
             <ThemedText style={[styles.title, { color: t.ink }]}>
               {step === 'phone' ? 'Connexion' : 'Code de vérification'}
@@ -343,26 +330,6 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
-  },
-  decor: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 1,
-    height: '100%',
-  },
-  decorTopRule: {
-    position: 'absolute',
-    left: 24,
-    right: 24,
-    height: StyleSheet.hairlineWidth,
-  },
-  decorAccent: {
-    position: 'absolute',
-    left: 24,
-    width: 48,
-    height: 2,
-    borderRadius: 1,
   },
   scrollContent: {
     flexGrow: 1,

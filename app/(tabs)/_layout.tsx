@@ -14,7 +14,7 @@ export default function TabLayout() {
   if (!isReady) {
     return null;
   }
-  if (!isAuthenticated) {
+  if (isAuthenticated) {
     return <Redirect href="/auth" />;
   }
 
@@ -63,7 +63,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="publier"
         options={{
-          title: 'Publier',
+          title: 'trajets',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="plus.circle.fill" color={color} />,
         }}
       />

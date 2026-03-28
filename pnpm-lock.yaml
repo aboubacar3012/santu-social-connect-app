@@ -5,12 +5,18 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@expo/metro-runtime':
+    specifier: ^6.1.2
+    version: 6.1.2(expo@54.0.33)(react-dom@19.1.0)(react-native@0.81.5)(react@19.1.0)
   '@expo/vector-icons':
     specifier: ^15.0.3
     version: 15.1.1(expo-font@14.0.11)(react-native@0.81.5)(react@19.1.0)
   '@react-native-async-storage/async-storage':
     specifier: 2.2.0
     version: 2.2.0(react-native@0.81.5)
+  '@react-native/virtualized-lists':
+    specifier: 0.81.5
+    version: 0.81.5(@types/react@19.1.17)(react-native@0.81.5)(react@19.1.0)
   '@react-navigation/bottom-tabs':
     specifier: ^7.4.0
     version: 7.15.9(@react-navigation/native@7.2.2)(react-native-safe-area-context@5.6.2)(react-native-screens@4.16.0)(react-native@0.81.5)(react@19.1.0)
@@ -38,6 +44,9 @@ dependencies:
   expo-image:
     specifier: ~3.0.11
     version: 3.0.11(expo@54.0.33)(react-native-web@0.21.2)(react-native@0.81.5)(react@19.1.0)
+  expo-image-picker:
+    specifier: ~17.0.10
+    version: 17.0.10(expo@54.0.33)
   expo-linking:
     specifier: ~8.0.11
     version: 8.0.11(expo@54.0.33)(react-native@0.81.5)(react@19.1.0)
@@ -4372,6 +4381,23 @@ packages:
       expo: '*'
     dependencies:
       expo: 54.0.33(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5)(react@19.1.0)
+    dev: false
+
+  /expo-image-loader@6.0.0(expo@54.0.33):
+    resolution: {integrity: sha512-nKs/xnOGw6ACb4g26xceBD57FKLFkSwEUTDXEDF3Gtcu3MqF3ZIYd3YM+sSb1/z9AKV1dYT7rMSGVNgsveXLIQ==}
+    peerDependencies:
+      expo: '*'
+    dependencies:
+      expo: 54.0.33(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5)(react@19.1.0)
+    dev: false
+
+  /expo-image-picker@17.0.10(expo@54.0.33):
+    resolution: {integrity: sha512-a2xrowp2trmvXyUWgX3O6Q2rZaa2C59AqivKI7+bm+wLvMfTEbZgldLX4rEJJhM8xtmEDTNU+lzjtObwzBRGaw==}
+    peerDependencies:
+      expo: '*'
+    dependencies:
+      expo: 54.0.33(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5)(react@19.1.0)
+      expo-image-loader: 6.0.0(expo@54.0.33)
     dev: false
 
   /expo-image@3.0.11(expo@54.0.33)(react-native-web@0.21.2)(react-native@0.81.5)(react@19.1.0):
