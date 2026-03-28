@@ -9,34 +9,15 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /**
  * Champs alignés sur le modèle Prisma `User` (santu-go-api/prisma/schema.prisma).
- * - firstName, lastName, profilePicture
- * - email, phoneE164 (lecture seule côté app — vérification OTP)
- * - vehicleBrand, vehicleModel, vehiclePlateNumber, vehicleTags
- * - tags
+ * - firstName, lastName, dateOfBirth (jour / mois / année → API), profilePicture
+ * - email (éditable) — le téléphone est défini à l’inscription / auth, non affiché ici
+ * - vehicleBrand, vehicleModel, vehiclePlateNumber
  * - identityVerificationDocumentFront | Back | Selfie
  */
 
 const SURFACE = { light: '#FFFFFF', dark: '#141416' } as const;
 const MUTED = { light: '#6B7280', dark: '#8B9098' } as const;
 const ON_TINT = '#111111';
-
-/** Suggestions pour `User.tags` (préférences trajet / covoiturage). */
-const PROFILE_TAG_OPTIONS = [
-  'Discussion modérée',
-  'Musique OK',
-  'Pause possible',
-  'Non-fumeur',
-] as const;
-
-/** Suggestions pour `User.vehicleTags`. */
-const VEHICLE_TAG_OPTIONS = [
-  'Climatisation',
-  'GPS',
-  'Bagages',
-  'Sièges enfant',
-  'Animaux',
-  'Non-fumeur à bord',
-] as const;
 
 function SectionCard({
   children,
@@ -73,6 +54,7 @@ function Field({
   keyboardType = 'default',
   autoCapitalize = 'sentences',
   autoCorrect,
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -85,9 +67,10 @@ function Field({
   borderColor: string;
   multiline?: boolean;
   editable?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'url';
+  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'number-pad' | 'url';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoCorrect?: boolean;
+  maxLength?: number;
 }) {
   return (
     <View style={styles.fieldGroup}>
@@ -99,7 +82,7 @@ function Field({
           !editable && styles.inputShellDisabled,
         ]}
       >
-        <MaterialIcons name={icon} size={16} color={themeMuted} style={styles.inputIcon} />
+        <MaterialIcons name={icon} size={14} color={themeMuted} style={styles.inputIcon} />
         <TextInput
           value={value}
           onChangeText={onChangeText}
@@ -112,49 +95,85 @@ function Field({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           autoCorrect={autoCorrect}
+          maxLength={maxLength}
         />
         {!editable ? (
-          <MaterialIcons name="lock-outline" size={16} color={themeMuted} style={styles.lockIcon} />
+          <MaterialIcons name="lock-outline" size={14} color={themeMuted} style={styles.lockIcon} />
         ) : null}
       </View>
     </View>
   );
 }
 
-function ContactReadOnlyRow({
-  label,
-  value,
-  verified,
+function DateOfBirthFields({
+  day,
+  month,
+  year,
+  onDayChange,
+  onMonthChange,
+  onYearChange,
   themeText,
   themeMuted,
   fieldBg,
   borderColor,
-  icon,
 }: {
-  label: string;
-  value: string;
-  verified: boolean;
+  day: string;
+  month: string;
+  year: string;
+  onDayChange: (v: string) => void;
+  onMonthChange: (v: string) => void;
+  onYearChange: (v: string) => void;
   themeText: string;
   themeMuted: string;
   fieldBg: string;
   borderColor: string;
-  icon: React.ComponentProps<typeof MaterialIcons>['name'];
 }) {
   return (
     <View style={styles.fieldGroup}>
-      <ThemedText style={[styles.fieldLabel, { color: themeMuted }]}>{label}</ThemedText>
-      <View style={[styles.inputShell, styles.inputShellDisabled, { backgroundColor: fieldBg, borderColor }]}>
-        <MaterialIcons name={icon} size={16} color={themeMuted} style={styles.inputIcon} />
-        <ThemedText style={[styles.readonlyValue, { color: themeText }]} numberOfLines={2}>
-          {value || '—'}
-        </ThemedText>
-        <MaterialIcons name="lock-outline" size={16} color={themeMuted} style={styles.lockIcon} />
-        {verified ? (
-          <View style={styles.verifiedBadge}>
-            <MaterialIcons name="verified" size={14} color="#2E7D32" />
-            <ThemedText style={styles.verifiedBadgeText}>Vérifié</ThemedText>
+      <ThemedText style={[styles.fieldLabel, { color: themeMuted }]}>Date de naissance</ThemedText>
+      <View style={styles.dateRow}>
+        <View style={styles.dateCol}>
+          <ThemedText style={[styles.dateHint, { color: themeMuted }]}>Jour</ThemedText>
+          <View style={[styles.inputShell, styles.dateInputShell, { backgroundColor: fieldBg, borderColor }]}>
+            <TextInput
+              value={day}
+              onChangeText={(t) => onDayChange(t.replace(/\D/g, '').slice(0, 2))}
+              placeholder="JJ"
+              placeholderTextColor={themeMuted}
+              keyboardType="number-pad"
+              maxLength={2}
+              style={[styles.input, styles.dateInput, { color: themeText }]}
+            />
           </View>
-        ) : null}
+        </View>
+        <View style={styles.dateCol}>
+          <ThemedText style={[styles.dateHint, { color: themeMuted }]}>Mois</ThemedText>
+          <View style={[styles.inputShell, styles.dateInputShell, { backgroundColor: fieldBg, borderColor }]}>
+            <TextInput
+              value={month}
+              onChangeText={(t) => onMonthChange(t.replace(/\D/g, '').slice(0, 2))}
+              placeholder="MM"
+              placeholderTextColor={themeMuted}
+              keyboardType="number-pad"
+              maxLength={2}
+              style={[styles.input, styles.dateInput, { color: themeText }]}
+            />
+          </View>
+        </View>
+        <View style={[styles.dateCol, styles.dateColYear]}>
+          <ThemedText style={[styles.dateHint, { color: themeMuted }]}>Année</ThemedText>
+          <View style={[styles.inputShell, styles.dateInputShell, { backgroundColor: fieldBg, borderColor }]}>
+            <TextInput
+              value={year}
+              onChangeText={(t) => onYearChange(t.replace(/\D/g, '').slice(0, 4))}
+              placeholder="AAAA"
+              placeholderTextColor={themeMuted}
+              keyboardType="number-pad"
+              maxLength={4}
+              style={[styles.input, styles.dateInput, { color: themeText }]}
+            />
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -174,38 +193,27 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
   const muted = isDark ? MUTED.dark : MUTED.light;
   const borderSubtle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   const fieldBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
-  const tintSoft = isDark ? 'rgba(230,168,0,0.14)' : 'rgba(230,168,0,0.18)';
 
   /* Identité */
   const [firstName, setFirstName] = useState('Aboubacar');
   const [lastName, setLastName] = useState('Bah');
+  const [birthDay, setBirthDay] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthYear, setBirthYear] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
 
-  /* Contact (affichage — modification via flux auth / support) */
-  const email = 'aboubacar@example.com';
-  const phoneE164 = '+224621000000';
-  const emailVerified = true;
-  const phoneVerified = true;
+  /* Contact */
+  const [email, setEmail] = useState('aboubacar@example.com');
 
   /* Véhicule */
   const [vehicleBrand, setVehicleBrand] = useState('Toyota');
   const [vehicleModel, setVehicleModel] = useState('RAV4');
   const [vehiclePlateNumber, setVehiclePlateNumber] = useState('');
-  const [vehicleTags, setVehicleTags] = useState<string[]>(['Climatisation', 'GPS']);
-
-  /* Tags profil (User.tags) */
-  const [tags, setTags] = useState<string[]>([...PROFILE_TAG_OPTIONS]);
 
   /* Pièces d’identité (URLs / chemins stockage) */
   const [identityVerificationDocumentFront, setIdentityVerificationDocumentFront] = useState<string | null>(null);
   const [identityVerificationDocumentBack, setIdentityVerificationDocumentBack] = useState<string | null>(null);
   const [identityVerificationDocumentSelfie, setIdentityVerificationDocumentSelfie] = useState<string | null>(null);
-
-  const toggleInList = (setList: React.Dispatch<React.SetStateAction<string[]>>, label: string) => {
-    setList((prev) =>
-      prev.includes(label) ? prev.filter((p) => p !== label) : [...prev, label]
-    );
-  };
 
   return (
     <>
@@ -244,12 +252,26 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
           </View>
         </View>
         <View style={styles.fieldSpacer} />
+        <DateOfBirthFields
+          day={birthDay}
+          month={birthMonth}
+          year={birthYear}
+          onDayChange={setBirthDay}
+          onMonthChange={setBirthMonth}
+          onYearChange={setBirthYear}
+          themeText={theme.text}
+          themeMuted={muted}
+          fieldBg={fieldBg}
+          borderColor={borderSubtle}
+        />
+        <View style={styles.fieldSpacer} />
         <UploadFile
           label="Photo de profil"
           value={profilePicture}
           onChange={setProfilePicture}
           variant="avatar"
-          hint="Stockée côté API dans `profilePicture` (URL ou clé après upload)."
+          compact
+          hint=""
           themeMuted={muted}
           fieldBg={fieldBg}
           borderColor={borderSubtle}
@@ -261,30 +283,25 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
         <View style={styles.kickerBlock}>
           <SectionKicker color={muted}>CONTACT</SectionKicker>
         </View>
-        <ContactReadOnlyRow
+        <Field
           label="E-mail"
           value={email}
-          verified={emailVerified}
-          themeText={theme.text}
-          themeMuted={muted}
-          fieldBg={fieldBg}
-          borderColor={borderSubtle}
+          onChangeText={setEmail}
+          placeholder="vous@exemple.com"
           icon="mail-outline"
-        />
-        <View style={[styles.inCardDivider, { backgroundColor: borderSubtle }]} />
-        <ContactReadOnlyRow
-          label="Téléphone (E.164)"
-          value={phoneE164}
-          verified={phoneVerified}
           themeText={theme.text}
           themeMuted={muted}
           fieldBg={fieldBg}
           borderColor={borderSubtle}
-          icon="phone"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
-        <ThemedText style={[styles.hint, { color: muted }]}>
-          `email` et `phoneE164` sont uniques en base. La modification passe par la vérification (OTP / lien).
-        </ThemedText>
+        {/* {emailVerified ? (
+          <ThemedText style={[styles.emailVerifiedNote, { color: muted }]}>
+            E-mail vérifié — un nouveau mail imposera une confirmation.
+          </ThemedText>
+        ) : null} */}
       </SectionCard>
 
       <SectionCard surface={surface} borderColor={borderSubtle}>
@@ -334,65 +351,6 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
           borderColor={borderSubtle}
           autoCapitalize="characters"
         />
-        <View style={styles.fieldSpacer} />
-        <ThemedText style={[styles.subLabel, { color: muted }]}>Équipements (`vehicleTags`)</ThemedText>
-        <View style={styles.optionWrap}>
-          {VEHICLE_TAG_OPTIONS.map((label) => {
-            const selected = vehicleTags.includes(label);
-            return (
-              <Pressable
-                key={label}
-                onPress={() => toggleInList(setVehicleTags, label)}
-                style={({ pressed }) => [
-                  styles.optionPill,
-                  {
-                    borderColor: selected ? theme.tint : borderSubtle,
-                    backgroundColor: selected ? tintSoft : 'transparent',
-                    opacity: pressed ? 0.9 : 1,
-                  },
-                ]}
-              >
-                <ThemedText
-                  style={[styles.optionPillText, { color: selected ? theme.text : muted }]}
-                >
-                  {label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-      </SectionCard>
-
-      <SectionCard surface={surface} borderColor={borderSubtle}>
-        <View style={styles.kickerBlock}>
-          <SectionKicker color={muted}>PRÉFÉRENCES TRAJET</SectionKicker>
-        </View>
-        <ThemedText style={[styles.subLabel, { color: muted }]}>Tags (`tags`)</ThemedText>
-        <View style={styles.optionWrap}>
-          {PROFILE_TAG_OPTIONS.map((label) => {
-            const selected = tags.includes(label);
-            return (
-              <Pressable
-                key={label}
-                onPress={() => toggleInList(setTags, label)}
-                style={({ pressed }) => [
-                  styles.optionPill,
-                  {
-                    borderColor: selected ? theme.tint : borderSubtle,
-                    backgroundColor: selected ? tintSoft : 'transparent',
-                    opacity: pressed ? 0.9 : 1,
-                  },
-                ]}
-              >
-                <ThemedText
-                  style={[styles.optionPillText, { color: selected ? theme.text : muted }]}
-                >
-                  {label}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
       </SectionCard>
 
       <SectionCard surface={surface} borderColor={borderSubtle}>
@@ -400,14 +358,14 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
           <SectionKicker color={muted}>PIÈCE D’IDENTITÉ</SectionKicker>
         </View>
         <ThemedText style={[styles.identityIntro, { color: muted }]}>
-          Champs Prisma : `identityVerificationDocumentFront`, `identityVerificationDocumentBack`,
-          `identityVerificationDocumentSelfie`.
+          Justificatif : recto, verso, selfie.
         </ThemedText>
         <UploadFile
           label="Recto"
           value={identityVerificationDocumentFront}
           onChange={setIdentityVerificationDocumentFront}
           variant="document"
+          compact
           themeMuted={muted}
           fieldBg={fieldBg}
           borderColor={borderSubtle}
@@ -419,6 +377,7 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
           value={identityVerificationDocumentBack}
           onChange={setIdentityVerificationDocumentBack}
           variant="document"
+          compact
           themeMuted={muted}
           fieldBg={fieldBg}
           borderColor={borderSubtle}
@@ -426,10 +385,11 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
         />
         <View style={styles.fieldSpacer} />
         <UploadFile
-          label="Selfie / portrait"
+          label="Selfie"
           value={identityVerificationDocumentSelfie}
           onChange={setIdentityVerificationDocumentSelfie}
           variant="document"
+          compact
           themeMuted={muted}
           fieldBg={fieldBg}
           borderColor={borderSubtle}
@@ -458,7 +418,7 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
             { backgroundColor: theme.tint, opacity: pressed ? 0.92 : 1 },
           ]}
         >
-          <MaterialIcons name="check" size={18} color={ON_TINT} />
+          <MaterialIcons name="check" size={17} color={ON_TINT} />
           <ThemedText style={styles.primaryBtnText}>Enregistrer</ThemedText>
         </Pressable>
       </View>
@@ -468,56 +428,76 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
 
 const styles = StyleSheet.create({
   sectionCard: {
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 4,
+    marginBottom: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
   kickerBlock: {
-    marginBottom: 8,
+    marginBottom: 5,
   },
   sectionKicker: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '700',
-    letterSpacing: 1.4,
+    letterSpacing: 1.2,
   },
   twoCols: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   col: {
     flex: 1,
     minWidth: 0,
   },
+  dateRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-end',
+  },
+  dateCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  dateColYear: {
+    flex: 1.35,
+  },
+  dateHint: {
+    fontSize: 9,
+    fontWeight: '600',
+    marginBottom: 4,
+    letterSpacing: 0.2,
+  },
+  dateInputShell: {
+    minHeight: 40,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+  },
+  dateInput: {
+    textAlign: 'center',
+    fontSize: 14,
+  },
   fieldGroup: {
-    gap: 6,
+    gap: 4,
   },
   fieldLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.25,
-  },
-  subLabel: {
     fontSize: 10,
     fontWeight: '600',
-    letterSpacing: 0.4,
-    marginBottom: 6,
-    textTransform: 'uppercase',
+    letterSpacing: 0.2,
   },
   inputShell: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: 9,
     borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    minHeight: 46,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    minHeight: 40,
   },
   inputShellDisabled: {
     opacity: 0.92,
@@ -530,102 +510,66 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     opacity: 0.75,
   },
-  readonlyValue: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    marginLeft: 4,
-  },
-  verifiedBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#2E7D32',
-  },
   input: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     paddingVertical: 0,
     letterSpacing: -0.2,
-    minHeight: 22,
+    minHeight: 20,
   },
   inputMultiline: {
-    minHeight: 56,
+    minHeight: 48,
     fontWeight: '500',
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 12,
+    lineHeight: 17,
   },
-  hint: {
-    fontSize: 11,
-    lineHeight: 15,
-    marginTop: 10,
+  emailVerifiedNote: {
+    fontSize: 9,
+    lineHeight: 12,
+    marginTop: 4,
     fontWeight: '500',
   },
   identityIntro: {
-    fontSize: 11,
-    lineHeight: 16,
-    marginBottom: 10,
+    fontSize: 10,
+    lineHeight: 14,
+    marginBottom: 6,
     fontWeight: '500',
   },
-  inCardDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginVertical: 10,
-  },
-  optionWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  optionPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 9,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-  },
-  optionPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   fieldSpacer: {
-    height: 10,
+    height: 6,
   },
   actionsRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 6,
+    gap: 8,
+    marginTop: 4,
   },
   secondaryBtn: {
     flex: 1,
-    borderRadius: 9,
-    paddingVertical: 10,
+    borderRadius: 8,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth * 2,
   },
   secondaryBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.2,
+    letterSpacing: 0.15,
   },
   primaryBtn: {
     flex: 1,
-    borderRadius: 9,
-    paddingVertical: 10,
+    borderRadius: 8,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
   },
   primaryBtnText: {
     color: ON_TINT,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.2,
+    letterSpacing: 0.15,
   },
 });

@@ -31,16 +31,11 @@ export default function ProfilScreen() {
   };
 
   return (
-    <SafeScrollView screenBackgroundColor={pageBg}>
+    <SafeScrollView screenBackgroundColor={pageBg} centerContent keyboardAvoiding>
       <View style={styles.hero}>
         <ThemedText style={[styles.heroKicker, { color: muted }]}>PROFIL</ThemedText>
         <ThemedText style={[styles.heroTitle, { color: theme.text }]}>
           {editing ? 'Modifier le profil' : 'Mon compte'}
-        </ThemedText>
-        <ThemedText style={[styles.heroSubtitle, { color: muted }]}>
-          {editing
-            ? 'Ajustez ce qui est visible par les passagers.'
-            : 'Identité, vérifications et préférences.'}
         </ThemedText>
       </View>
 
