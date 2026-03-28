@@ -1,5 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -14,6 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import type { AuthUser } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /** Palette inspirée de l’UI Tesla : neutres, contraste net, peu d’ornements. */
@@ -60,6 +62,7 @@ export default function AuthScreen() {
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { isReady, isAuthenticated, signIn } = useAuth();
 
   type AuthStep = 'phone' | 'otp';
 
@@ -82,19 +85,23 @@ export default function AuthScreen() {
   const primaryBtnFg = isDark ? t.surface : t.btnOn;
   const statusH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : insets.top;
 
-  const apiBaseUrl = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
+  const apiBaseUrl = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(
+    /\/+$/,
+    '',
+  );
 
   const phoneOk = useMemo(() => {
-    return /^\+\d{7,15}$/.test(phoneE164);
+    return /^\+\d{10,15}$/.test(phoneE164);
   }, [phoneE164]);
 
-  const otpOk = useMemo(() => /^\d{4,10}$/.test(otpCode), [otpCode]);
+  const otpOk = useMemo(() => /^\d{6,8}$/.test(otpCode), [otpCode]);
 
   const canContinuePhone = phoneOk && !isRequestingOtp;
   const canSubmitOtp = otpOk && !isVerifyingOtp;
 
   const phoneDisplay = useMemo(() => formatPhoneDisplay(phoneE164), [phoneE164]);
 
+  // Ici on demande un OTP au backend pour la validation du numéro de téléphone
   const onContinuePhone = useCallback(async () => {
     if (!phoneOk || isRequestingOtp) return;
     setAuthError(null);
@@ -118,6 +125,7 @@ export default function AuthScreen() {
     }
   }, [apiBaseUrl, phoneE164, phoneOk, isRequestingOtp]);
 
+  // Ici on vérifie le OTP et on récupère le JWT
   const onSubmitOtp = useCallback(async () => {
     if (!otpOk || isVerifyingOtp) return;
     setAuthError(null);
@@ -132,25 +140,35 @@ export default function AuthScreen() {
         const txt = await res.text().catch(() => '');
         throw new Error(txt || `Erreur (${res.status})`);
       }
-      const data = (await res.json().catch(() => ({}))) as { accessToken?: string };
-      if (!data?.accessToken) {
-        throw new Error('Token manquant dans la réponse.');
+      const data = (await res.json().catch(() => ({}))) as {
+        accessToken?: string;
+        user?: AuthUser;
+      };
+      if (!data?.accessToken || !data?.user) {
+        throw new Error('Réponse invalide (token ou utilisateur manquant).');
       }
-      // TODO: stocker le token (SecureStore/AsyncStorage) quand tu mets en place le client API global.
+      await signIn(data.accessToken, data.user);
       setAuthError(null);
-      router.push('/(tabs)');
+      router.replace('/(tabs)');
     } catch (e: unknown) {
       setAuthError(e instanceof Error ? e.message : 'Code invalide.');
     } finally {
       setIsVerifyingOtp(false);
     }
-  }, [apiBaseUrl, otpCode, otpOk, phoneE164, isVerifyingOtp, router]);
+  }, [apiBaseUrl, otpCode, otpOk, phoneE164, isVerifyingOtp, router, signIn]);
 
   const goBackToPhone = useCallback(() => {
     setStep('phone');
     setOtpCode('');
     setAuthError(null);
   }, []);
+
+  if (!isReady) {
+    return null;
+  }
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: bg }]}>

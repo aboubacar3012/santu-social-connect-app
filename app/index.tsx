@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const ACCENT = '#E6A800';
@@ -36,6 +37,7 @@ const STEPS = [
 export default function WelcomeScreen() {
   const router = useRouter();
   const scheme = useColorScheme();
+  const { isReady, isAuthenticated } = useAuth();
   const dark = scheme === 'dark';
   const insets = useSafeAreaInsets();
 
@@ -84,10 +86,11 @@ export default function WelcomeScreen() {
   };
 
   useEffect(() => {
+    if (!isReady) return;
     barWidth.setValue(0);
     runBar((step + 1) / STEPS.length);
     runEnter();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goTo = (next: number) => {
     if (busy || next === step) return;
@@ -108,10 +111,17 @@ export default function WelcomeScreen() {
     });
   };
 
-  const skip = () => router.push('/auth');
+  const skip = () => router.replace('/auth');
   const next = () => (isLast ? skip() : goTo(step + 1));
 
   const barW = barWidth.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+
+  if (!isReady) {
+    return null;
+  }
+  if (isAuthenticated) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <View style={[s.root, { backgroundColor: bg }]}>
