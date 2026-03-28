@@ -31,6 +31,9 @@ export type MeApiUser = {
   phoneVerified?: boolean;
   identityVerified?: boolean;
   profilePicture?: string | null;
+  identityVerificationDocumentFront?: string | null;
+  identityVerificationDocumentBack?: string | null;
+  identityVerificationDocumentSelfie?: string | null;
   vehicleBrand?: string | null;
   vehicleModel?: string | null;
   vehiclePlateNumber?: string | null;
