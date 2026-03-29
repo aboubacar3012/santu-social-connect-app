@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 
-import type { MeApiUser } from '@/components/profil-view';
+import { resolveProfileImageUri, type MeApiUser } from '@/components/profil-view';
 import UploadFile from '@/components/upload-file';
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -44,29 +44,47 @@ function birthIsoFromParts(day: string, month: string, year: string): string | n
   return dt.toISOString().slice(0, 10);
 }
 
-/** URI affichable pour `UploadFile` (API base64 / data URL ou fichier local). */
-function displayUriForStoredImage(raw: string | null | undefined): string | null {
-  if (!raw || typeof raw !== 'string') return null;
-  const t = raw.trim();
-  if (!t.length) return null;
-  if (
-    t.startsWith('data:') ||
-    t.startsWith('file://') ||
-    t.startsWith('http://') ||
-    t.startsWith('https://')
-  ) {
-    return t;
-  }
-  return `data:image/jpeg;base64,${t}`;
+/** Types MIME acceptés par `POST /uploads/presign` (aligné sur le DTO API). */
+const ALLOWED_PRESIGN_CONTENT_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'video/mp4',
+  'video/quicktime',
+  'application/pdf',
+]);
+
+function normalizePresignContentType(raw: string): string {
+  const t = raw.split(';')[0]?.trim().toLowerCase() ?? 'image/jpeg';
+  if (t === 'image/jpg') return 'image/jpeg';
+  if (ALLOWED_PRESIGN_CONTENT_TYPES.has(t)) return t;
+  return 'image/jpeg';
 }
 
-async function imageValueForApi(uri: string | null): Promise<string> {
-  if (uri === null || uri === '') return '';
-  if (uri.startsWith('file://')) {
-    const b64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
-    return `data:image/jpeg;base64,${b64}`;
-  }
-  return uri;
+function guessContentTypeFromUri(uri: string): string {
+  const path = uri.split('?')[0]?.split('#')[0] ?? uri;
+  const lower = path.toLowerCase();
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.heic')) return 'image/heic';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.mp4')) return 'video/mp4';
+  if (lower.endsWith('.mov')) return 'video/quicktime';
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  return 'image/jpeg';
+}
+
+function parseDataUrlMime(dataUrl: string): string | null {
+  const m = /^data:([^;,]+)/.exec(dataUrl);
+  return m?.[1]?.trim() ?? null;
+}
+
+function base64ToUint8Array(b64: string): Uint8Array {
+  const bin = globalThis.atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
 
 function apiErrorMessage(body: unknown, fallback: string): string {
@@ -77,6 +95,121 @@ function apiErrorMessage(body: unknown, fallback: string): string {
     return m.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join('\n');
   }
   return fallback;
+}
+
+async function putBytesOnPresignedUrl(
+  uploadUrl: string,
+  contentType: string,
+  body: Blob | Uint8Array,
+): Promise<void> {
+  const res = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': contentType },
+    body: body as unknown as BodyInit,
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(errText || `Upload S3 ${res.status}`);
+  }
+}
+
+/** `file://` : lecture binaire puis PUT ; repli base64 si `blob()` indisponible. */
+async function uploadFileUriToPresigned(
+  localUri: string,
+  uploadUrl: string,
+  contentType: string,
+): Promise<void> {
+  try {
+    const fileRes = await fetch(localUri);
+    const blob = await fileRes.blob();
+    await putBytesOnPresignedUrl(uploadUrl, contentType, blob);
+  } catch {
+    const b64 = await FileSystem.readAsStringAsync(localUri, { encoding: 'base64' });
+    const bytes = base64ToUint8Array(b64);
+    await putBytesOnPresignedUrl(uploadUrl, contentType, bytes);
+  }
+}
+
+type PresignResponse = {
+  uploadUrl: string;
+  fileUrl: string;
+  key: string;
+  expiresIn: number;
+  contentType: string;
+};
+
+async function presignAndUpload(
+  token: string,
+  contentType: string,
+  fileName: string,
+  uploadBody: (uploadUrl: string, ct: string) => Promise<void>,
+): Promise<string> {
+  const presignRes = await fetch(`${API_BASE}/uploads/presign`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ contentType, fileName }),
+  });
+  const text = await presignRes.text();
+  let data: unknown = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = {};
+  }
+  if (!presignRes.ok) {
+    throw new Error(apiErrorMessage(data, text || `Pré-upload ${presignRes.status}`));
+  }
+  const parsed = data as Partial<PresignResponse>;
+  if (!parsed.uploadUrl || !parsed.fileUrl) {
+    throw new Error('Réponse pré-upload invalide.');
+  }
+  const ct = normalizePresignContentType(parsed.contentType ?? contentType);
+  await uploadBody(parsed.uploadUrl, ct);
+  return parsed.fileUrl;
+}
+
+/**
+ * Retourne une URL HTTPS (`fileUrl`) pour le PATCH, ou une chaîne déjà utilisable (data / http).
+ * - `https?://` : inchangé (déjà sur S3/CDN).
+ * - `file://` : pré-signature + PUT.
+ * - `data:` : upload vers S3 pour ne plus envoyer de gros base64 au PATCH.
+ */
+async function imageValueForApi(uri: string | null, token: string): Promise<string> {
+  if (uri === null || uri === '') return '';
+  const t = uri.trim();
+  if (t.startsWith('https://') || t.startsWith('http://')) return t;
+
+  if (t.startsWith('file://')) {
+    const contentType = normalizePresignContentType(guessContentTypeFromUri(t));
+    const fileName = decodeURIComponent(t.split('/').pop() || 'upload.jpg').split('?')[0] || 'upload.jpg';
+    return presignAndUpload(token, contentType, fileName, (uploadUrl, ct) =>
+      uploadFileUriToPresigned(t, uploadUrl, ct),
+    );
+  }
+
+  if (t.startsWith('data:')) {
+    const mime = parseDataUrlMime(t);
+    const contentType = normalizePresignContentType(mime ?? 'image/jpeg');
+    const fileName =
+      contentType === 'image/png'
+        ? 'photo.png'
+        : contentType === 'image/webp'
+          ? 'photo.webp'
+          : contentType === 'image/heic'
+            ? 'photo.heic'
+            : 'photo.jpg';
+    return presignAndUpload(token, contentType, fileName, async (uploadUrl, ct) => {
+      const blobRes = await fetch(t);
+      const blob = await blobRes.blob();
+      await putBytesOnPresignedUrl(uploadUrl, ct, blob);
+    });
+  }
+
+  return t;
 }
 
 /**
@@ -300,19 +433,19 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
     setBirthDay(parts.d);
     setBirthMonth(parts.m);
     setBirthYear(parts.y);
-    setProfilePicture(displayUriForStoredImage(u.profilePicture ?? null));
+    setProfilePicture(resolveProfileImageUri(u.profilePicture ?? null));
     setEmail(u.email?.trim() ?? authUser?.email?.trim() ?? '');
     setVehicleBrand(u.vehicleBrand?.trim() ?? '');
     setVehicleModel(u.vehicleModel?.trim() ?? '');
     setVehiclePlateNumber(u.vehiclePlateNumber?.trim() ?? '');
     setIdentityVerificationDocumentFront(
-      displayUriForStoredImage(u.identityVerificationDocumentFront ?? null),
+      resolveProfileImageUri(u.identityVerificationDocumentFront ?? null),
     );
     setIdentityVerificationDocumentBack(
-      displayUriForStoredImage(u.identityVerificationDocumentBack ?? null),
+      resolveProfileImageUri(u.identityVerificationDocumentBack ?? null),
     );
     setIdentityVerificationDocumentSelfie(
-      displayUriForStoredImage(u.identityVerificationDocumentSelfie ?? null),
+      resolveProfileImageUri(u.identityVerificationDocumentSelfie ?? null),
     );
   }, [authUser?.email]);
 
@@ -385,10 +518,10 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
         idBackPayload,
         idSelfiePayload,
       ] = await Promise.all([
-        imageValueForApi(profilePicture),
-        imageValueForApi(identityVerificationDocumentFront),
-        imageValueForApi(identityVerificationDocumentBack),
-        imageValueForApi(identityVerificationDocumentSelfie),
+        imageValueForApi(profilePicture, token),
+        imageValueForApi(identityVerificationDocumentFront, token),
+        imageValueForApi(identityVerificationDocumentBack, token),
+        imageValueForApi(identityVerificationDocumentSelfie, token),
       ]);
 
       const emailTrim = email.trim();

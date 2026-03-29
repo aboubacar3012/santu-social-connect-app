@@ -18,6 +18,9 @@ const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').re
   '',
 );
 
+/** Aligné sur `IdentityVerificationStatus` (Prisma). */
+export type IdentityVerificationStatusApi = 'pending' | 'approved' | 'rejected';
+
 /** Réponse typique de `GET /users/me` (sérialisation JSON Prisma). */
 export type MeApiUser = {
   id: string;
@@ -30,6 +33,8 @@ export type MeApiUser = {
   phoneE164?: string | null;
   phoneVerified?: boolean;
   identityVerified?: boolean;
+  identityVerificationStatus?: IdentityVerificationStatusApi | null;
+  rejectedAt?: string | null;
   profilePicture?: string | null;
   identityVerificationDocumentFront?: string | null;
   identityVerificationDocumentBack?: string | null;
@@ -39,11 +44,19 @@ export type MeApiUser = {
   vehiclePlateNumber?: string | null;
 };
 
-function profilePictureUri(raw: string | null | undefined): string | null {
+/**
+ * URI pour `<Image source={{ uri }}` — HTTPS (S3/CloudFront), data URL, ou base64 legacy.
+ */
+export function resolveProfileImageUri(raw: string | null | undefined): string | null {
   if (!raw || typeof raw !== 'string') return null;
   const t = raw.trim();
   if (!t.length) return null;
-  if (t.startsWith('data:') || t.startsWith('http://') || t.startsWith('https://')) {
+  if (
+    t.startsWith('data:') ||
+    t.startsWith('file://') ||
+    t.startsWith('http://') ||
+    t.startsWith('https://')
+  ) {
     return t;
   }
   return `data:image/jpeg;base64,${t}`;
@@ -96,6 +109,73 @@ function formatVehicleTitle(u: MeApiUser): string {
 function formatPlate(u: MeApiUser): string {
   const p = u.vehiclePlateNumber?.trim();
   return p ? `Immat. ${p}` : 'Immatriculation non renseignée';
+}
+
+function hasIdentityDocuments(u: MeApiUser | null | undefined): boolean {
+  if (!u) return false;
+  return Boolean(
+    u.identityVerificationDocumentFront?.trim() ||
+      u.identityVerificationDocumentBack?.trim() ||
+      u.identityVerificationDocumentSelfie?.trim(),
+  );
+}
+
+type IdentityUiKind = 'approved' | 'pending_review' | 'pending_missing' | 'rejected';
+
+function getIdentityVerificationPresentation(me: MeApiUser | null): {
+  kind: IdentityUiKind;
+  headline: string;
+  detail: string;
+  badge: string;
+} {
+  const status = me?.identityVerificationStatus ?? 'pending';
+
+  if (status === 'rejected') {
+    const dateStr = me?.rejectedAt
+      ? new Date(me.rejectedAt).toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+      : null;
+    return {
+      kind: 'rejected',
+      headline: 'Pièce d’identité refusée',
+      detail: dateStr
+        ? `Refusée le ${dateStr}. Soumettez de nouveaux documents depuis « Modifier le profil ».`
+        : 'Votre demande a été refusée. Mettez à jour vos documents depuis « Modifier le profil ».',
+      badge: 'Refusé',
+    };
+  }
+
+  if (status === 'approved' || me?.identityVerified) {
+    return {
+      kind: 'approved',
+      headline: 'Identité vérifiée',
+      detail:
+        'Votre pièce d’identité a été acceptée. Les passagers voient que votre profil est vérifié.',
+      badge: 'Vérifié',
+    };
+  }
+
+  const hasDocs = hasIdentityDocuments(me);
+  if (!hasDocs) {
+    return {
+      kind: 'pending_missing',
+      headline: 'Pièce d’identité',
+      detail:
+        'Ajoutez le recto, le verso et un selfie pour lancer la vérification.',
+      badge: 'À compléter',
+    };
+  }
+
+  return {
+    kind: 'pending_review',
+    headline: 'Vérification en cours',
+    detail:
+      'Nous examinons vos documents. Vous serez informé·e lorsque la décision sera prise.',
+    badge: 'En examen',
+  };
 }
 
 const SURFACE = { light: '#FFFFFF', dark: '#141416' } as const;
@@ -163,6 +243,103 @@ function VerifyRow({
       </View>
       {showDivider ? <View style={[styles.rowDivider, { backgroundColor: borderColor }]} /> : null}
     </>
+  );
+}
+
+function IdentityVerificationCard({
+  me,
+  themeText,
+  muted,
+  isDark,
+  borderSubtle,
+}: {
+  me: MeApiUser | null;
+  themeText: string;
+  muted: string;
+  isDark: boolean;
+  borderSubtle: string;
+}) {
+  const p = getIdentityVerificationPresentation(me);
+
+  const scheme = {
+    approved: {
+      icon: 'verified' as const,
+      accent: isDark ? '#4ADE80' : '#15803D',
+      soft: isDark ? 'rgba(74,222,128,0.1)' : 'rgba(21,128,61,0.07)',
+      ring: isDark ? 'rgba(74,222,128,0.45)' : 'rgba(21,128,61,0.35)',
+    },
+    pending_review: {
+      icon: 'hourglass-top' as const,
+      accent: isDark ? '#FBBF24' : '#B45309',
+      soft: isDark ? 'rgba(251,191,36,0.1)' : 'rgba(180,83,9,0.07)',
+      ring: isDark ? 'rgba(251,191,36,0.45)' : 'rgba(180,83,9,0.3)',
+    },
+    pending_missing: {
+      icon: 'add-a-photo' as const,
+      accent: muted,
+      soft: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+      ring: borderSubtle,
+    },
+    rejected: {
+      icon: 'gpp-bad' as const,
+      accent: isDark ? '#F87171' : '#B91C1C',
+      soft: isDark ? 'rgba(248,113,113,0.1)' : 'rgba(185,28,28,0.07)',
+      ring: isDark ? 'rgba(248,113,113,0.45)' : 'rgba(185,28,28,0.35)',
+    },
+  }[p.kind];
+
+  const badgeBg =
+    p.kind === 'approved'
+      ? isDark
+        ? 'rgba(74,222,128,0.18)'
+        : 'rgba(21,128,61,0.12)'
+      : p.kind === 'pending_review'
+        ? isDark
+          ? 'rgba(251,191,36,0.2)'
+          : 'rgba(180,83,9,0.12)'
+        : p.kind === 'rejected'
+          ? isDark
+            ? 'rgba(248,113,113,0.2)'
+            : 'rgba(185,28,28,0.12)'
+          : isDark
+            ? 'rgba(255,255,255,0.08)'
+            : 'rgba(0,0,0,0.06)';
+
+  return (
+    <View
+      style={[
+        styles.idCard,
+        {
+          backgroundColor: scheme.soft,
+          borderColor: scheme.ring,
+        },
+      ]}
+    >
+      <View style={styles.idCardRow}>
+        <View
+          style={[
+            styles.idIconRing,
+            {
+              borderColor: scheme.ring,
+              backgroundColor: isDark ? 'rgba(0,0,0,0.25)' : '#FFFFFF',
+            },
+          ]}
+        >
+          <MaterialIcons name={scheme.icon} size={22} color={scheme.accent} />
+        </View>
+        <View style={styles.idCardMain}>
+          <View style={styles.idTitleRow}>
+            <ThemedText style={[styles.idHeadline, { color: themeText }]} numberOfLines={2}>
+              {p.headline}
+            </ThemedText>
+            <View style={[styles.idBadge, { backgroundColor: badgeBg }]}>
+              <ThemedText style={[styles.idBadgeText, { color: scheme.accent }]}>{p.badge}</ThemedText>
+            </View>
+          </View>
+          <ThemedText style={[styles.idDetail, { color: muted }]}>{p.detail}</ThemedText>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -254,7 +431,10 @@ export default function ProfilView({ onEdit, onLogout }: ProfilViewProps) {
 
   const displayName = useMemo(() => getDisplayName(displayUser), [displayUser]);
   const initials = useMemo(() => getInitials(displayUser), [displayUser]);
-  const avatarUri = useMemo(() => profilePictureUri(me?.profilePicture ?? null), [me?.profilePicture]);
+  const avatarUri = useMemo(
+    () => resolveProfileImageUri(me?.profilePicture ?? null),
+    [me?.profilePicture],
+  );
 
   const emailSubtitle = me?.email?.trim() || authUser?.email?.trim() || 'Non renseigné';
   const emailDone = Boolean(
@@ -262,9 +442,6 @@ export default function ProfilView({ onEdit, onLogout }: ProfilViewProps) {
   );
   const phoneSubtitle = (me?.phoneE164 ?? authUser?.phoneE164 ?? '').trim() || 'Non renseigné';
   const phoneDone = Boolean(me?.phoneVerified);
-  const idSubtitle = me?.identityVerified
-    ? 'Vérification enregistrée'
-    : 'Ajoutez votre pièce pour rassurer les passagers';
 
   return (
     <>
@@ -363,16 +540,12 @@ export default function ProfilView({ onEdit, onLogout }: ProfilViewProps) {
               showDivider
               borderColor={borderSubtle}
             />
-            <VerifyRow
-              icon="badge"
-              title="Pièce d'identité"
-              subtitle={idSubtitle}
-              done={Boolean(me?.identityVerified)}
+            <IdentityVerificationCard
+              me={me}
               themeText={theme.text}
               muted={muted}
-              iconWrapBg={iconWrapBg}
-              tint={theme.tint}
-              borderColor={borderSubtle}
+              isDark={isDark}
+              borderSubtle={borderSubtle}
             />
           </>
         )}
@@ -567,6 +740,62 @@ const styles = StyleSheet.create({
   rowDivider: {
     height: StyleSheet.hairlineWidth,
     marginLeft: 42,
+  },
+  idCard: {
+    marginTop: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+  },
+  idCardRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  idIconRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  idCardMain: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
+  },
+  idTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  idHeadline: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    lineHeight: 18,
+  },
+  idBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    flexShrink: 0,
+  },
+  idBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  idDetail: {
+    fontSize: 11,
+    fontWeight: '500',
+    lineHeight: 16,
   },
   carRow: {
     flexDirection: 'row',
