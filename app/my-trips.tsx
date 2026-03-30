@@ -1,22 +1,15 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/shared/themed-text';
-import {
-  FAKE_MY_COMPLETED_TRIPS,
-  FAKE_MY_RESERVED_TRIPS,
-  type CompletedTrip,
-  type ReservedAsPassenger,
-} from '@/constants/fake-profile-passenger';
-import {
-  FAKE_MY_PUBLISHED_TRIPS,
-  placesBookedForTrip,
-  type MyPublishedTrip,
-} from '@/constants/fake-profile-published';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { mapApiTripsToMyPublishedTrips } from '@/libs/trip';
+import { listPublishedTripsApi } from '@/services/trip-list.service';
+import type { MyPublishedTripVm } from '@/types/trip';
 
 const PAGE_BG = { light: '#EBECEF', dark: '#0A0A0C' } as const;
 const SURFACE = { light: '#FFFFFF', dark: '#141416' } as const;
@@ -60,16 +53,16 @@ function PublishedRow({
   tint,
   onPress,
 }: {
-  trip: MyPublishedTrip;
+  trip: MyPublishedTripVm;
   themeText: string;
   muted: string;
   borderSubtle: string;
   tint: string;
   onPress: () => void;
 }) {
-  const booked = placesBookedForTrip(trip);
+  const booked = trip.placesBooked;
   const free = Math.max(0, trip.placesTotal - booked);
-  const nRes = trip.bookings.length;
+  const nRes = booked;
   const sub =
     nRes === 0
       ? `${booked}/${trip.placesTotal} places`
@@ -100,91 +93,6 @@ function PublishedRow({
   );
 }
 
-function ReservedRow({
-  trip,
-  themeText,
-  muted,
-  borderSubtle,
-  okColor,
-  pendingColor,
-  onPress,
-}: {
-  trip: ReservedAsPassenger;
-  themeText: string;
-  muted: string;
-  borderSubtle: string;
-  okColor: string;
-  pendingColor: string;
-  onPress: () => void;
-}) {
-  const ok = trip.bookingStatus === 'confirmé';
-  const c = ok ? okColor : pendingColor;
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        { borderColor: borderSubtle, opacity: pressed ? 0.9 : 1 },
-      ]}
-    >
-      <View style={styles.rowMain}>
-        <View style={styles.rowTop}>
-          <ThemedText style={[styles.route, { color: themeText }]} numberOfLines={1}>
-            {trip.from} → {trip.to}
-          </ThemedText>
-          <View style={[styles.pill, { backgroundColor: `${c}20` }]}>
-            <ThemedText style={[styles.pillText, { color: c }]}>{ok ? 'Confirmé' : 'En attente'}</ThemedText>
-          </View>
-        </View>
-        <ThemedText style={[styles.lineMeta, { color: muted }]} numberOfLines={1}>
-          {trip.whenLabel} · {trip.departTime} · {formatPrice(trip.priceGNF)}
-        </ThemedText>
-        <ThemedText style={[styles.lineSub, { color: muted }]} numberOfLines={1}>
-          {trip.seats} place{trip.seats > 1 ? 's' : ''}
-        </ThemedText>
-      </View>
-      <MaterialIcons name="chevron-right" size={22} color={pendingColor} />
-    </Pressable>
-  );
-}
-
-function CompletedRow({
-  trip,
-  themeText,
-  muted,
-  borderSubtle,
-  tint,
-  onPress,
-}: {
-  trip: CompletedTrip;
-  themeText: string;
-  muted: string;
-  borderSubtle: string;
-  tint: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        { borderColor: borderSubtle, opacity: pressed ? 0.9 : 1 },
-      ]}
-    >
-      <MaterialIcons name="check-circle" size={20} color={tint} style={styles.doneIcon} />
-      <View style={styles.rowMain}>
-        <ThemedText style={[styles.route, { color: themeText }]} numberOfLines={1}>
-          {trip.from} → {trip.to}
-        </ThemedText>
-        <ThemedText style={[styles.lineMeta, { color: muted }]} numberOfLines={1}>
-          {trip.whenLabel} · {trip.departTime} · {formatPrice(trip.priceGNF)}
-        </ThemedText>
-      </View>
-      <MaterialIcons name="chevron-right" size={22} color={muted} />
-    </Pressable>
-  );
-}
-
 /**
  * Mes trajets (publiés, réservés, effectués) — écran stack, accessible depuis le profil.
  */
@@ -197,11 +105,37 @@ export default function MyTripsScreen() {
   const surface = isDark ? SURFACE.dark : SURFACE.light;
   const muted = isDark ? MUTED.dark : MUTED.light;
   const borderSubtle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-  const okGreen = isDark ? '#6BCF7F' : '#1B5E20';
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [publishedTrips, setPublishedTrips] = useState<MyPublishedTripVm[]>([]);
 
   const goTrip = (id: string) => {
     router.push({ pathname: '/trip-view', params: { id } });
   };
+
+  const loadTrips = useCallback(async () => {
+    if (!user?.id) {
+      setPublishedTrips([]);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const { trips } = await listPublishedTripsApi();
+      setPublishedTrips(mapApiTripsToMyPublishedTrips(trips, user.id));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Chargement des trajets impossible.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadTrips();
+    }, [loadTrips]),
+  );
 
   return (
     <ScrollView
@@ -212,63 +146,58 @@ export default function MyTripsScreen() {
     >
       <Section
         title="Publiés"
-        count={FAKE_MY_PUBLISHED_TRIPS.length}
+        count={publishedTrips.length}
         surface={surface}
         borderColor={borderSubtle}
         muted={muted}
       >
-        {FAKE_MY_PUBLISHED_TRIPS.map((trip) => (
-          <PublishedRow
-            key={trip.id}
-            trip={trip}
-            themeText={theme.text}
-            muted={muted}
-            borderSubtle={borderSubtle}
-            tint={theme.tint}
-            onPress={() => goTrip(trip.id)}
-          />
-        ))}
+        {loading ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={theme.tint} />
+            <ThemedText style={[styles.emptyText, { color: muted }]}>Chargement…</ThemedText>
+          </View>
+        ) : null}
+        {!loading && error ? <ThemedText style={[styles.emptyText, { color: muted }]}>{error}</ThemedText> : null}
+        {!loading && !error && publishedTrips.length === 0 ? (
+          <ThemedText style={[styles.emptyText, { color: muted }]}>Aucun trajet publié pour le moment.</ThemedText>
+        ) : null}
+        {!loading &&
+          !error &&
+          publishedTrips.map((trip) => (
+            <PublishedRow
+              key={trip.id}
+              trip={trip}
+              themeText={theme.text}
+              muted={muted}
+              borderSubtle={borderSubtle}
+              tint={theme.tint}
+              onPress={() => goTrip(trip.id)}
+            />
+          ))}
       </Section>
 
       <Section
         title="Réservés"
-        count={FAKE_MY_RESERVED_TRIPS.length}
+        count={0}
         surface={surface}
         borderColor={borderSubtle}
         muted={muted}
       >
-        {FAKE_MY_RESERVED_TRIPS.map((trip) => (
-          <ReservedRow
-            key={trip.id}
-            trip={trip}
-            themeText={theme.text}
-            muted={muted}
-            borderSubtle={borderSubtle}
-            okColor={okGreen}
-            pendingColor={theme.tint}
-            onPress={() => goTrip(trip.id)}
-          />
-        ))}
+        <ThemedText style={[styles.emptyText, { color: muted }]}>
+          Bientôt disponible avec l’endpoint dédié côté API.
+        </ThemedText>
       </Section>
 
       <Section
         title="Effectués"
-        count={FAKE_MY_COMPLETED_TRIPS.length}
+        count={0}
         surface={surface}
         borderColor={borderSubtle}
         muted={muted}
       >
-        {FAKE_MY_COMPLETED_TRIPS.map((trip) => (
-          <CompletedRow
-            key={`${trip.id}-${trip.whenLabel}`}
-            trip={trip}
-            themeText={theme.text}
-            muted={muted}
-            borderSubtle={borderSubtle}
-            tint={theme.tint}
-            onPress={() => goTrip(trip.id)}
-          />
-        ))}
+        <ThemedText style={[styles.emptyText, { color: muted }]}>
+          Bientôt disponible avec l’endpoint dédié côté API.
+        </ThemedText>
       </Section>
     </ScrollView>
   );
@@ -349,5 +278,16 @@ const styles = StyleSheet.create({
   },
   doneIcon: {
     marginTop: 2,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  emptyText: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 17,
   },
 });

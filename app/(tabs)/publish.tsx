@@ -2,8 +2,9 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { DateField } from '@/components/publish/date-field';
 import { IconTextField } from '@/components/publish/icon-text-field';
@@ -12,6 +13,9 @@ import { SectionKicker } from '@/components/shared/section-kicker';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/hooks/use-auth';
+import { buildCreateTripPayload } from '@/libs/trip';
+import { createTripApi } from '@/services/trip-create.service';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const PAGE_BG = { light: '#EBECEF', dark: '#0A0A0C' } as const;
@@ -45,6 +49,7 @@ function defaultTimeForPicker(): Date {
 }
 
 export default function PublishScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
@@ -63,9 +68,10 @@ export default function PublishScreen() {
   const [androidTimeOpen, setAndroidTimeOpen] = useState(false);
   const [iosTimeOpen, setIosTimeOpen] = useState(false);
   const [price, setPrice] = useState('');
-  const [car, setCar] = useState('');
   const [comment, setComment] = useState('');
   const [seats, setSeats] = useState<number>(2);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const { token } = useAuth();
 
   const canPublish = useMemo(
     () =>
@@ -110,8 +116,64 @@ export default function PublishScreen() {
   const pickerValue = tripDate ?? new Date();
   const timePickerValue = tripTime ?? defaultTimeForPicker();
 
+  const handlePublish = async () => {
+    if (isPublishing) return;
+    if (!token) {
+      Alert.alert('Session', 'Vous devez être connecté pour publier un trajet.');
+      return;
+    }
+
+    const built = buildCreateTripPayload({
+      from,
+      to,
+      tripDate,
+      tripTime,
+      seats,
+      price,
+      comment,
+    });
+    if (!built.payload) {
+      Alert.alert('Publication', built.reason ?? 'Données invalides.');
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      await createTripApi(token, built.payload);
+      Alert.alert('Trajet publié', 'Votre trajet a bien été publié.');
+      setFrom('');
+      setTo('');
+      setTripDate(null);
+      setTripTime(null);
+      setPrice('');
+      setComment('');
+      setSeats(2);
+    } catch (e: unknown) {
+      Alert.alert('Publication', e instanceof Error ? e.message : 'Erreur lors de la publication.');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   return (
     <SafeScrollView keyboardAvoiding screenBackgroundColor={pageBg}>
+      <Pressable
+        onPress={() => router.push('/my-trips')}
+        style={({ pressed }) => [
+          styles.floatingTopBtn,
+          {
+            borderColor: borderSubtle,
+            backgroundColor: surface,
+            opacity: pressed ? 0.9 : 1,
+          },
+        ]}
+      >
+        <MaterialIcons name="list-alt" size={16} color={theme.text} />
+        <ThemedText style={[styles.floatingTopBtnText, { color: theme.text }]}>
+          Mes trajets
+        </ThemedText>
+      </Pressable>
+
       <View style={styles.hero}>
         <ThemedText style={[styles.heroKicker, { color: muted }]}>PUBLIER</ThemedText>
         <ThemedText style={[styles.heroTitle, { color: theme.text }]}>Nouveau trajet</ThemedText>
@@ -274,36 +336,19 @@ export default function PublishScreen() {
 
       <SectionCard surface={surface} borderColor={borderSubtle}>
         <View style={styles.kickerBlock}>
-          <SectionKicker color={muted}>TARIF & VÉHICULE</SectionKicker>
+          <SectionKicker color={muted}>TARIF</SectionKicker>
         </View>
-        <View style={styles.twoCols}>
-          <View style={styles.col}>
-            <IconTextField
-              label="Prix / place (GNF)"
-              value={price}
-              onChangeText={setPrice}
-              placeholder="45 000"
-              icon="payments"
-              themeText={theme.text}
-              themeMuted={muted}
-              fieldBg={fieldBg}
-              borderColor={borderSubtle}
-            />
-          </View>
-          <View style={styles.col}>
-            <IconTextField
-              label="Véhicule"
-              value={car}
-              onChangeText={setCar}
-              placeholder="Toyota Yaris"
-              icon="directions-car"
-              themeText={theme.text}
-              themeMuted={muted}
-              fieldBg={fieldBg}
-              borderColor={borderSubtle}
-            />
-          </View>
-        </View>
+        <IconTextField
+          label="Prix / place"
+          value={price}
+          onChangeText={setPrice}
+          placeholder="45 000"
+          icon="payments"
+          themeText={theme.text}
+          themeMuted={muted}
+          fieldBg={fieldBg}
+          borderColor={borderSubtle}
+        />
       </SectionCard>
 
       <SectionCard surface={surface} borderColor={borderSubtle}>
@@ -364,23 +409,23 @@ export default function PublishScreen() {
       </SectionCard>
 
       <Pressable
-        disabled={!canPublish}
-        onPress={() => {}}
+        disabled={!canPublish || isPublishing}
+        onPress={() => void handlePublish()}
         style={({ pressed }) => [
           styles.primaryCta,
           {
-            backgroundColor: canPublish ? theme.tint : fieldBg,
-            opacity: !canPublish ? 1 : pressed ? 0.92 : 1,
+            backgroundColor: canPublish && !isPublishing ? theme.tint : fieldBg,
+            opacity: !canPublish || isPublishing ? 1 : pressed ? 0.92 : 1,
           },
         ]}
       >
         <MaterialIcons
           name="publish"
           size={18}
-          color={canPublish ? ON_TINT : muted}
+          color={canPublish && !isPublishing ? ON_TINT : muted}
         />
-        <ThemedText style={[styles.primaryCtaText, { color: canPublish ? ON_TINT : muted }]}>
-          Publier le trajet
+        <ThemedText style={[styles.primaryCtaText, { color: canPublish && !isPublishing ? ON_TINT : muted }]}>
+          {isPublishing ? 'Publication…' : 'Publier le trajet'}
         </ThemedText>
       </Pressable>
 
@@ -396,8 +441,32 @@ export default function PublishScreen() {
 
 const styles = StyleSheet.create({
   hero: {
+    marginTop: 34,
     marginBottom: 3,
     gap: 5,
+  },
+  floatingTopBtn: {
+    position: 'absolute',
+    top: 2,
+    right: 0,
+    zIndex: 20,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  floatingTopBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   heroKicker: {
     fontSize: 9,
