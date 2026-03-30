@@ -54,7 +54,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="publier"
+        name="publish"
         options={{
           title: 'Publier',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="plus.circle.fill" color={color} />,

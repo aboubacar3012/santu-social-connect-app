@@ -3,15 +3,12 @@ import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import React, { useMemo, useState } from 'react';
-import {
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { DateField } from '@/components/publish/date-field';
+import { IconTextField } from '@/components/publish/icon-text-field';
+import { SectionCard } from '@/components/publish/section-card';
+import { SectionKicker } from '@/components/publish/section-kicker';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
@@ -47,115 +44,7 @@ function defaultTimeForPicker(): Date {
   return d;
 }
 
-function SectionCard({
-  children,
-  surface,
-  borderColor,
-  style,
-}: {
-  children: React.ReactNode;
-  surface: string;
-  borderColor: string;
-  style?: object;
-}) {
-  return (
-    <View style={[styles.sectionCard, { backgroundColor: surface, borderColor }, style]}>{children}</View>
-  );
-}
-
-function SectionKicker({ children, color }: { children: string; color: string }) {
-  return <ThemedText style={[styles.sectionKicker, { color }]}>{children}</ThemedText>;
-}
-
-function IconTextField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  icon,
-  themeText,
-  themeMuted,
-  fieldBg,
-  borderColor,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder: string;
-  icon: React.ComponentProps<typeof MaterialIcons>['name'];
-  themeText: string;
-  themeMuted: string;
-  fieldBg: string;
-  borderColor: string;
-}) {
-  return (
-    <View style={styles.fieldGroup}>
-      <ThemedText style={[styles.fieldLabel, { color: themeMuted }]}>{label}</ThemedText>
-      <View style={[styles.inputShell, { backgroundColor: fieldBg, borderColor }]}>
-        <MaterialIcons name={icon} size={16} color={themeMuted} style={styles.inputIcon} />
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={themeMuted}
-          style={[styles.input, { color: themeText }]}
-          autoCapitalize="words"
-        />
-      </View>
-    </View>
-  );
-}
-
-function DateField({
-  label,
-  displayValue,
-  placeholder,
-  onPress,
-  themeText,
-  themeMuted,
-  fieldBg,
-  borderColor,
-  icon = 'calendar-month',
-}: {
-  label: string;
-  displayValue: string | null;
-  placeholder: string;
-  onPress: () => void;
-  themeText: string;
-  themeMuted: string;
-  fieldBg: string;
-  borderColor: string;
-  icon?: React.ComponentProps<typeof MaterialIcons>['name'];
-}) {
-  return (
-    <View style={styles.fieldGroup}>
-      <ThemedText style={[styles.fieldLabel, { color: themeMuted }]}>{label}</ThemedText>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.inputShell,
-          {
-            backgroundColor: fieldBg,
-            borderColor,
-            opacity: pressed ? 0.92 : 1,
-          },
-        ]}
-      >
-        <MaterialIcons name={icon} size={16} color={themeMuted} style={styles.inputIcon} />
-        <ThemedText
-          style={[styles.dateFieldText, { color: displayValue ? themeText : themeMuted }]}
-          numberOfLines={1}
-        >
-          {displayValue ?? placeholder}
-        </ThemedText>
-      </Pressable>
-    </View>
-  );
-}
-
-export default function PublierScreen() {
+export default function PublishScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
@@ -476,7 +365,7 @@ export default function PublierScreen() {
 
       <Pressable
         disabled={!canPublish}
-        onPress={() => { }}
+        onPress={() => {}}
         style={({ pressed }) => [
           styles.primaryCta,
           {
@@ -530,25 +419,8 @@ const styles = StyleSheet.create({
   tabBarSpacer: {
     height: 76,
   },
-  sectionCard: {
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    elevation: 2,
-  },
   kickerBlock: {
     marginBottom: 8,
-  },
-  sectionKicker: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1.4,
   },
   commentHeader: {
     flexDirection: 'row',
@@ -566,40 +438,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
-  },
-  fieldGroup: {
-    gap: 6,
-  },
-  fieldLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.25,
-  },
-  inputShell: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 12,
-    minHeight: 46,
-  },
-  inputIcon: {
-    marginRight: 8,
-    opacity: 0.85,
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    paddingVertical: 10,
-    letterSpacing: -0.2,
-  },
-  dateFieldText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    paddingVertical: 10,
-    letterSpacing: -0.2,
   },
   dateModalRoot: {
     flex: 1,
