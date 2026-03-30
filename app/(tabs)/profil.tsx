@@ -2,8 +2,8 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import ProfilEdit from '@/components/profil-edit';
-import ProfilView from '@/components/profil-view';
+import ProfilEdit from '@/components/profil/profil-edit';
+import ProfilView from '@/components/profil/profil-view';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';

@@ -2,9 +2,8 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 /**
- * Carte visuelle regroupant un bloc du formulaire (itinéraire, planning, etc.).
- * Applique fond, bordure, ombre légère et coins arrondis : sert de « conteneur de section »
- * pour séparer visuellement les groupes de champs sur l’écran publish (onglet publication).
+ * Encadré de section : fond, bordure fine, ombre légère et marges intérieures uniformes.
+ * Réutilisable sur les écrans formulaire (publish, profil-edit, etc.) pour regrouper visuellement des champs.
  */
 export function SectionCard({
   children,

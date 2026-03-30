@@ -8,199 +8,32 @@ import {
   View,
 } from 'react-native';
 
+import { SectionCard } from '@/components/shared/section-card';
+import { SectionKicker } from '@/components/shared/section-kicker';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { resolveProfileImageUri } from '@/libs/profile';
+import {
+  formatProfileBirthLine,
+  formatProfileMemberLine,
+  formatProfilePlate,
+  formatProfileVehicleTitle,
+  getIdentityVerificationPresentation,
+  getProfileDisplayName,
+  getProfileInitials,
+} from '@/services/profil-view.service';
+import type { MeApiUser } from '@/types/profile';
 
 const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(
   /\/+$/,
   '',
 );
 
-/** Aligné sur `IdentityVerificationStatus` (Prisma). */
-export type IdentityVerificationStatusApi = 'pending' | 'approved' | 'rejected';
-
-/** Réponse typique de `GET /users/me` (sérialisation JSON Prisma). */
-export type MeApiUser = {
-  id: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  dateOfBirth?: string | null;
-  createdAt?: string;
-  email?: string | null;
-  emailVerified?: boolean;
-  phoneE164?: string | null;
-  phoneVerified?: boolean;
-  identityVerified?: boolean;
-  identityVerificationStatus?: IdentityVerificationStatusApi | null;
-  rejectedAt?: string | null;
-  profilePicture?: string | null;
-  identityVerificationDocumentFront?: string | null;
-  identityVerificationDocumentBack?: string | null;
-  identityVerificationDocumentSelfie?: string | null;
-  vehicleBrand?: string | null;
-  vehicleModel?: string | null;
-  vehiclePlateNumber?: string | null;
-};
-
-/**
- * URI pour `<Image source={{ uri }}` — HTTPS (S3/CloudFront), data URL, ou base64 legacy.
- */
-export function resolveProfileImageUri(raw: string | null | undefined): string | null {
-  if (!raw || typeof raw !== 'string') return null;
-  const t = raw.trim();
-  if (!t.length) return null;
-  if (
-    t.startsWith('data:') ||
-    t.startsWith('file://') ||
-    t.startsWith('http://') ||
-    t.startsWith('https://')
-  ) {
-    return t;
-  }
-  return `data:image/jpeg;base64,${t}`;
-}
-
-function getDisplayName(u: MeApiUser): string {
-  const a = u.firstName?.trim();
-  const b = u.lastName?.trim();
-  if (a && b) return `${a} ${b}`;
-  if (a) return a;
-  if (b) return b;
-  const p = u.phoneE164?.trim();
-  if (p) return p;
-  return 'Profil';
-}
-
-function getInitials(u: MeApiUser): string {
-  const a = u.firstName?.trim()?.[0];
-  const b = u.lastName?.trim()?.[0];
-  if (a && b) return `${a}${b}`.toUpperCase();
-  if (a) return a.toUpperCase().slice(0, 2);
-  const digits = u.phoneE164?.replace(/\D/g, '') ?? '';
-  if (digits.length >= 2) return digits.slice(-2);
-  return '?';
-}
-
-function formatBirthLine(iso?: string | null): string {
-  if (!iso) return 'Date de naissance non renseignée';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return 'Date de naissance non renseignée';
-  return `Né(e) le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
-}
-
-function formatMemberLine(iso?: string | null): string {
-  if (!iso) return 'Date d’inscription indisponible';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return 'Date d’inscription indisponible';
-  return `Membre depuis ${d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`;
-}
-
-function formatVehicleTitle(u: MeApiUser): string {
-  const brand = u.vehicleBrand?.trim();
-  const model = u.vehicleModel?.trim();
-  if (brand && model) return `${brand} · ${model}`;
-  if (brand) return brand;
-  if (model) return model;
-  return 'Véhicule non renseigné';
-}
-
-function formatPlate(u: MeApiUser): string {
-  const p = u.vehiclePlateNumber?.trim();
-  return p ? `Immat. ${p}` : 'Immatriculation non renseignée';
-}
-
-function hasIdentityDocuments(u: MeApiUser | null | undefined): boolean {
-  if (!u) return false;
-  return Boolean(
-    u.identityVerificationDocumentFront?.trim() ||
-    u.identityVerificationDocumentBack?.trim() ||
-    u.identityVerificationDocumentSelfie?.trim(),
-  );
-}
-
-type IdentityUiKind = 'approved' | 'pending_review' | 'pending_missing' | 'rejected';
-
-function getIdentityVerificationPresentation(me: MeApiUser | null): {
-  kind: IdentityUiKind;
-  headline: string;
-  detail: string;
-  badge: string;
-} {
-  const status = me?.identityVerificationStatus ?? 'pending';
-
-  if (status === 'rejected') {
-    const dateStr = me?.rejectedAt
-      ? new Date(me.rejectedAt).toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      })
-      : null;
-    return {
-      kind: 'rejected',
-      headline: 'Pièce d’identité refusée',
-      detail: dateStr
-        ? `Refusée le ${dateStr}. Soumettez de nouveaux documents depuis « Modifier le profil ».`
-        : 'Votre demande a été refusée. Mettez à jour vos documents depuis « Modifier le profil ».',
-      badge: 'Refusé',
-    };
-  }
-
-  if (status === 'approved' || me?.identityVerified) {
-    return {
-      kind: 'approved',
-      headline: 'Identité vérifiée',
-      detail:
-        'Votre pièce d’identité a été acceptée. Les passagers voient que votre profil est vérifié.',
-      badge: 'Vérifié',
-    };
-  }
-
-  const hasDocs = hasIdentityDocuments(me);
-  if (!hasDocs) {
-    return {
-      kind: 'pending_missing',
-      headline: 'Pièce d’identité',
-      detail:
-        'Ajoutez le recto, le verso et un selfie pour lancer la vérification.',
-      badge: 'À compléter',
-    };
-  }
-
-  return {
-    kind: 'pending_review',
-    headline: 'Vérification en cours',
-    detail:
-      'Nous examinons vos documents. Vous serez informé·e lorsque la décision sera prise.',
-    badge: 'En examen',
-  };
-}
-
 const SURFACE = { light: '#FFFFFF', dark: '#141416' } as const;
 const MUTED = { light: '#6B7280', dark: '#8B9098' } as const;
 const ON_TINT = '#111111';
-
-function SectionCard({
-  children,
-  surface,
-  borderColor,
-  style,
-}: {
-  children: React.ReactNode;
-  surface: string;
-  borderColor: string;
-  style?: object;
-}) {
-  return (
-    <View style={[styles.sectionCard, { backgroundColor: surface, borderColor }, style]}>{children}</View>
-  );
-}
-
-function SectionKicker({ children, color }: { children: string; color: string }) {
-  return <ThemedText style={[styles.sectionKicker, { color }]}>{children}</ThemedText>;
-}
 
 function VerifyRow({
   icon,
@@ -431,8 +264,8 @@ export default function ProfilView({ onEdit, onLogout, onMyTrips }: ProfilViewPr
     };
   }, [me, authUser]);
 
-  const displayName = useMemo(() => getDisplayName(displayUser), [displayUser]);
-  const initials = useMemo(() => getInitials(displayUser), [displayUser]);
+  const displayName = useMemo(() => getProfileDisplayName(displayUser), [displayUser]);
+  const initials = useMemo(() => getProfileInitials(displayUser), [displayUser]);
   const avatarUri = useMemo(
     () => resolveProfileImageUri(me?.profilePicture ?? null),
     [me?.profilePicture],
@@ -498,10 +331,10 @@ export default function ProfilView({ onEdit, onLogout, onMyTrips }: ProfilViewPr
             <View style={styles.identityText}>
               <ThemedText style={[styles.name, { color: theme.text }]}>{displayName}</ThemedText>
               <ThemedText style={[styles.smallMuted, { color: muted }]}>
-                {me ? formatBirthLine(me.dateOfBirth) : 'Informations non disponibles'}
+                {me ? formatProfileBirthLine(me.dateOfBirth) : 'Informations non disponibles'}
               </ThemedText>
               <ThemedText style={[styles.smallMuted, { color: muted }]}>
-                {me?.createdAt ? formatMemberLine(me.createdAt) : '—'}
+                {me?.createdAt ? formatProfileMemberLine(me.createdAt) : '—'}
               </ThemedText>
             </View>
           </View>
@@ -576,10 +409,10 @@ export default function ProfilView({ onEdit, onLogout, onMyTrips }: ProfilViewPr
             </View>
             <View style={styles.carText}>
               <ThemedText style={[styles.carTitle, { color: theme.text }]}>
-                {me ? formatVehicleTitle(me) : '—'}
+                {me ? formatProfileVehicleTitle(me) : '—'}
               </ThemedText>
               <ThemedText style={[styles.smallMuted, { color: muted }]}>
-                {me ? formatPlate(me) : '—'}
+                {me ? formatProfilePlate(me) : '—'}
               </ThemedText>
             </View>
           </View>

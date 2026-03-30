@@ -7,8 +7,8 @@ import { Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-n
 
 import { DateField } from '@/components/publish/date-field';
 import { IconTextField } from '@/components/publish/icon-text-field';
-import { SectionCard } from '@/components/publish/section-card';
-import { SectionKicker } from '@/components/publish/section-kicker';
+import { SectionCard } from '@/components/shared/section-card';
+import { SectionKicker } from '@/components/shared/section-kicker';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
