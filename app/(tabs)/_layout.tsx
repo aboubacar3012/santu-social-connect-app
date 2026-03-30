@@ -1,8 +1,8 @@
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { HapticTab } from '@/components/shared/haptic-tab';
+import { IconSymbol } from '@/components/shared/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -53,17 +53,10 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} />,
         }}
       />
-      {/* <Tabs.Screen
-        name="vos-trajets"
-        options={{
-          title: 'Vos trajets',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="car.fill" color={color} />,
-        }}
-      /> */}
       <Tabs.Screen
         name="publier"
         options={{
-          title: 'trajets',
+          title: 'Publier',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="plus.circle.fill" color={color} />,
         }}
       />

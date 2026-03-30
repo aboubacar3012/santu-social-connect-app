@@ -1,9 +1,9 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/shared/themed-text';
 import {
   FAKE_MY_COMPLETED_TRIPS,
   FAKE_MY_RESERVED_TRIPS,
@@ -18,6 +18,7 @@ import {
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+const PAGE_BG = { light: '#EBECEF', dark: '#0A0A0C' } as const;
 const SURFACE = { light: '#FFFFFF', dark: '#141416' } as const;
 const MUTED = { light: '#6B7280', dark: '#8B9098' } as const;
 
@@ -184,12 +185,15 @@ function CompletedRow({
   );
 }
 
-/** Mes trajets : listes compactes (détail dans l’écran trajet). */
-export default function MyTripsPanel() {
+/**
+ * Mes trajets (publiés, réservés, effectués) — écran stack, accessible depuis le profil.
+ */
+export default function MyTripsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
+  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
   const surface = isDark ? SURFACE.dark : SURFACE.light;
   const muted = isDark ? MUTED.dark : MUTED.light;
   const borderSubtle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -200,7 +204,12 @@ export default function MyTripsPanel() {
   };
 
   return (
-    <>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      style={[styles.scrollRoot, { backgroundColor: pageBg }]}
+      contentContainerStyle={styles.scrollViewContent}
+    >
       <Section
         title="Publiés"
         count={FAKE_MY_PUBLISHED_TRIPS.length}
@@ -261,11 +270,19 @@ export default function MyTripsPanel() {
           />
         ))}
       </Section>
-    </>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollRoot: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
   section: {
     borderRadius: 12,
     paddingHorizontal: 12,

@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/shared/themed-text';
 
 /** Aperçu avec [Expo Image](https://docs.expo.dev/versions/latest/sdk/image/) — cache, transitions, `contentFit`. */
 

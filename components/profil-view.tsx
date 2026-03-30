@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -115,8 +115,8 @@ function hasIdentityDocuments(u: MeApiUser | null | undefined): boolean {
   if (!u) return false;
   return Boolean(
     u.identityVerificationDocumentFront?.trim() ||
-      u.identityVerificationDocumentBack?.trim() ||
-      u.identityVerificationDocumentSelfie?.trim(),
+    u.identityVerificationDocumentBack?.trim() ||
+    u.identityVerificationDocumentSelfie?.trim(),
   );
 }
 
@@ -133,10 +133,10 @@ function getIdentityVerificationPresentation(me: MeApiUser | null): {
   if (status === 'rejected') {
     const dateStr = me?.rejectedAt
       ? new Date(me.rejectedAt).toLocaleDateString('fr-FR', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        })
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
       : null;
     return {
       kind: 'rejected',
@@ -346,10 +346,12 @@ function IdentityVerificationCard({
 type ProfilViewProps = {
   onEdit: () => void;
   onLogout: () => void;
+  /** Accès à l’écran « Mes trajets » (sous la section véhicule). */
+  onMyTrips: () => void;
 };
 
 /** Affichage lecture seule : identité (aligné sur profil-edit), vérifications, véhicule. */
-export default function ProfilView({ onEdit, onLogout }: ProfilViewProps) {
+export default function ProfilView({ onEdit, onLogout, onMyTrips }: ProfilViewProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
@@ -583,6 +585,31 @@ export default function ProfilView({ onEdit, onLogout }: ProfilViewProps) {
           </View>
         )}
       </SectionCard>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Ouvrir mes trajets"
+        onPress={onMyTrips}
+        style={({ pressed }) => [
+          styles.tripsLink,
+          {
+            backgroundColor: isDark ? '#141416' : '#FFFFFF',
+            borderColor: borderSubtle,
+            opacity: pressed ? 0.88 : 1,
+          },
+        ]}
+      >
+        <View style={[styles.tripsLinkIcon, { backgroundColor: iconWrapBg }]}>
+          <MaterialIcons name="route" size={20} color={theme.tint} />
+        </View>
+        <View style={styles.tripsLinkText}>
+          <ThemedText style={[styles.tripsLinkTitle, { color: theme.text }]}>Mes trajets</ThemedText>
+          <ThemedText style={[styles.tripsLinkSubtitle, { color: muted }]}>
+            Publiés, réservés et effectués
+          </ThemedText>
+        </View>
+        <MaterialIcons name="chevron-right" size={22} color={muted} />
+      </Pressable>
 
       <Pressable
         onPress={onEdit}
@@ -820,6 +847,37 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: -0.2,
+  },
+  tripsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 4,
+  },
+  tripsLinkIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tripsLinkText: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  tripsLinkTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  tripsLinkSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   primaryCta: {
     marginTop: 5,

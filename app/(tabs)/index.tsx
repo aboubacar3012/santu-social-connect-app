@@ -11,8 +11,8 @@ import {
   View,
 } from 'react-native';
 
-import SafeScrollView from '@/components/scroll-view';
-import { ThemedText } from '@/components/themed-text';
+import SafeScrollView from '@/components/shared/scroll-view';
+import { ThemedText } from '@/components/shared/themed-text';
 import { CITIES } from '@/constants/fake-trips';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';

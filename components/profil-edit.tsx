@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 
 import { resolveProfileImageUri, type MeApiUser } from '@/components/profil-view';
-import UploadFile from '@/components/upload-file';
-import { ThemedText } from '@/components/themed-text';
+import UploadFile from '@/components/shared/upload-file';
+import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';

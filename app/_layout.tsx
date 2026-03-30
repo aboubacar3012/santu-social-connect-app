@@ -45,8 +45,20 @@ export default function RootLayout() {
             headerTitleStyle: { fontWeight: '700', fontSize: 17 },
           }}
         />
+        <Stack.Screen
+          name="my-trips"
+          options={{
+            title: 'Mes trajets',
+            headerBackTitle: 'Retour',
+            headerShadowVisible: false,
+            headerStyle: {
+              backgroundColor: colorScheme === 'dark' ? '#0D0D0F' : '#EDEFF2',
+            },
+            headerTintColor: colorScheme === 'dark' ? '#ECEDEE' : '#11181C',
+            headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+          }}
+        />
 
-        
         </Stack>
       <StatusBar style="auto" />
       </AuthProvider>

@@ -4,8 +4,8 @@ import { StyleSheet, View } from 'react-native';
 
 import ProfilEdit from '@/components/profil-edit';
 import ProfilView from '@/components/profil-view';
-import SafeScrollView from '@/components/scroll-view';
-import { ThemedText } from '@/components/themed-text';
+import SafeScrollView from '@/components/shared/scroll-view';
+import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -42,7 +42,11 @@ export default function ProfilScreen() {
       {editing ? (
         <ProfilEdit onCancel={() => setEditing(false)} onSave={() => setEditing(false)} />
       ) : (
-        <ProfilView onEdit={() => setEditing(true)} onLogout={handleLogout} />
+        <ProfilView
+          onEdit={() => setEditing(true)}
+          onLogout={handleLogout}
+          onMyTrips={() => router.push('/my-trips')}
+        />
       )}
 
       <View style={styles.tabBarSpacer} />
