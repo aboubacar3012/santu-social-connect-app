@@ -1,25 +1,28 @@
 {
   "expo": {
-    "name": "Santu Go",
-    "slug": "santu-go",
+    "name": "Santu",
+    "slug": "santu",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "santu-go",
+    "scheme": "santu",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hakimj.santu"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FFEB3B",
+        "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.hakimj.santu"
     },
     "web": {
       "output": "static",
@@ -42,6 +45,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#F7F7F7",
           "dark": {
+            "image": "./assets/images/splash-icon-dark.png",
             "backgroundColor": "#0A0A0A"
           }
         }
