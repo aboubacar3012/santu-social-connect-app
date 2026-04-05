@@ -34,7 +34,7 @@ const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').re
 );
 
 /**
- * Champs alignés sur le modèle Prisma `User` (santu-go-api/prisma/schema.prisma).
+ * Champs alignés sur le modèle Prisma `User` (Santu-api/prisma/schema.prisma).
  * - firstName, lastName, dateOfBirth (jour / mois / année → API), profilePicture
  * - email (éditable) — le téléphone est défini à l’inscription / auth, non affiché ici
  * - vehicleBrand, vehicleModel, vehiclePlateNumber

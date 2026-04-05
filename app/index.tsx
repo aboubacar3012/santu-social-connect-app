@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ThemedText } from '@/components/shared/themed-text';
 
 const ACCENT = '#E6A800';
 
@@ -162,7 +163,7 @@ export default function WelcomeScreen() {
         <Animated.Text style={[s.body, { color: muted, opacity: bodyOpacity }]}>
           {cur.body}
         </Animated.Text>
-
+        
         <View style={s.spacer} />
 
         {/* Zone basse */}

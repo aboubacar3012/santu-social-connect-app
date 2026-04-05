@@ -85,10 +85,10 @@ export default function AuthScreen() {
   const primaryBtnFg = isDark ? t.surface : t.btnOn;
   const statusH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : insets.top;
 
-  const apiBaseUrl = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(
-    /\/+$/,
-    '',
-  );
+  const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL
+  if (!apiBaseUrl) {
+    throw new Error('EXPO_PUBLIC_API_URL is not set');
+  }
 
   const phoneOk = useMemo(() => {
     return /^\+\d{10,15}$/.test(phoneE164);
@@ -189,7 +189,7 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.titleBlock}>
-            <ThemedText style={[styles.tag, { color: mutedText }]}>Santu Go</ThemedText>
+            <ThemedText style={[styles.tag, { color: mutedText }]}>Santu</ThemedText>
 
             <ThemedText style={[styles.title, { color: t.ink }]}>
               {step === 'phone' ? 'Connexion' : 'Code de vérification'}
