@@ -53,11 +53,21 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} />,
         }}
       />
+
       <Tabs.Screen
         name="publish"
         options={{
           title: 'Publier',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="plus.circle.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
+          ),
         }}
       />
       <Tabs.Screen

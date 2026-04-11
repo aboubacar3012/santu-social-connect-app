@@ -21,6 +21,7 @@ const MAPPING: IconMapping = {
   'car.fill': 'directions-car',
   'plus.circle.fill': 'add-circle',
   'person.crop.circle': 'person',
+  'bubble.left.and.bubble.right.fill': 'chat',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'chevron.left': 'chevron-left',
