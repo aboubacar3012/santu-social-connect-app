@@ -1,5 +1,5 @@
 import { formatApiErrorMessage } from '@/services/profil-edit.service';
-import type { CreateTripApiPayload, CreateTripApiResponse } from '@/types/trip';
+import type { CreateEventApiPayload, CreateEventApiResponse } from '@/types/event';
 
 const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(
   /\/+$/,
@@ -7,13 +7,13 @@ const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').re
 );
 
 /**
- * Appelle l'API pour publier un trajet.
+ * Appelle l'API pour publier un événement (admin).
  */
-export async function createTripApi(
+export async function createEventApi(
   token: string,
-  payload: CreateTripApiPayload,
-): Promise<CreateTripApiResponse> {
-  const res = await fetch(`${API_BASE}/trips`, {
+  payload: CreateEventApiPayload,
+): Promise<CreateEventApiResponse> {
+  const res = await fetch(`${API_BASE}/events`, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -35,10 +35,10 @@ export async function createTripApi(
     throw new Error(formatApiErrorMessage(body, text || `Erreur ${res.status}`));
   }
 
-  const data = body as Partial<CreateTripApiResponse>;
-  if (!data?.trip || typeof data.trip !== 'object') {
-    throw new Error('Réponse création trajet invalide.');
+  const data = body as Partial<CreateEventApiResponse>;
+  if (!data?.event || typeof data.event !== 'object') {
+    throw new Error('Réponse création événement invalide.');
   }
 
-  return data as CreateTripApiResponse;
+  return data as CreateEventApiResponse;
 }

@@ -18,8 +18,6 @@ import { resolveProfileImageUri } from '@/libs/profile';
 import {
   formatProfileBirthLine,
   formatProfileMemberLine,
-  formatProfilePlate,
-  formatProfileVehicleTitle,
   getIdentityVerificationPresentation,
   getProfileDisplayName,
   getProfileInitials,
@@ -179,12 +177,10 @@ function IdentityVerificationCard({
 type ProfilViewProps = {
   onEdit: () => void;
   onLogout: () => void;
-  /** Accès à l’écran « Mes trajets » (sous la section véhicule). */
-  onMyTrips: () => void;
 };
 
-/** Affichage lecture seule : identité (aligné sur profil-edit), vérifications, véhicule. */
-export default function ProfilView({ onEdit, onLogout, onMyTrips }: ProfilViewProps) {
+/** Affichage lecture seule : identité (aligné sur profil-edit), vérifications. */
+export default function ProfilView({ onEdit, onLogout }: ProfilViewProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
@@ -385,64 +381,6 @@ export default function ProfilView({ onEdit, onLogout, onMyTrips }: ProfilViewPr
           </>
         )}
       </SectionCard>
-
-      <SectionCard surface={surface} borderColor={borderSubtle}>
-        <View style={styles.kickerBlock}>
-          <SectionKicker color={muted}>VÉHICULE</SectionKicker>
-        </View>
-        {isLoading ? (
-          <View style={styles.loadingRowCompact}>
-            <ActivityIndicator size="small" color={theme.tint} />
-          </View>
-        ) : (
-          <View style={styles.carRow}>
-            <View
-              style={[
-                styles.carIconHub,
-                {
-                  backgroundColor: isDark ? '#1C1C1F' : '#F0F1F4',
-                  borderColor: isDark ? 'rgba(230,168,0,0.35)' : 'rgba(230,168,0,0.45)',
-                },
-              ]}
-            >
-              <MaterialIcons name="directions-car" size={18} color={theme.tint} />
-            </View>
-            <View style={styles.carText}>
-              <ThemedText style={[styles.carTitle, { color: theme.text }]}>
-                {me ? formatProfileVehicleTitle(me) : '—'}
-              </ThemedText>
-              <ThemedText style={[styles.smallMuted, { color: muted }]}>
-                {me ? formatProfilePlate(me) : '—'}
-              </ThemedText>
-            </View>
-          </View>
-        )}
-      </SectionCard>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ouvrir mes trajets"
-        onPress={onMyTrips}
-        style={({ pressed }) => [
-          styles.tripsLink,
-          {
-            backgroundColor: isDark ? '#141416' : '#FFFFFF',
-            borderColor: borderSubtle,
-            opacity: pressed ? 0.88 : 1,
-          },
-        ]}
-      >
-        <View style={[styles.tripsLinkIcon, { backgroundColor: iconWrapBg }]}>
-          <MaterialIcons name="route" size={20} color={theme.tint} />
-        </View>
-        <View style={styles.tripsLinkText}>
-          <ThemedText style={[styles.tripsLinkTitle, { color: theme.text }]}>Mes trajets</ThemedText>
-          <ThemedText style={[styles.tripsLinkSubtitle, { color: muted }]}>
-            Publiés, réservés et effectués
-          </ThemedText>
-        </View>
-        <MaterialIcons name="chevron-right" size={22} color={muted} />
-      </Pressable>
 
       <Pressable
         onPress={onEdit}
@@ -656,61 +594,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     lineHeight: 16,
-  },
-  carRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  carIconHub: {
-    width: 42,
-    height: 42,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    flexShrink: 0,
-  },
-  carText: {
-    flex: 1,
-    gap: 3,
-    minWidth: 0,
-  },
-  carTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  tripsLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 4,
-  },
-  tripsLinkIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tripsLinkText: {
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-  },
-  tripsLinkTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  tripsLinkSubtitle: {
-    fontSize: 12,
-    fontWeight: '500',
   },
   primaryCta: {
     marginTop: 5,

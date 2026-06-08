@@ -12,7 +12,7 @@ import React, {
 const STORAGE_TOKEN = '@santu/access_token';
 const STORAGE_USER = '@santu/user';
 
-export type UserRole = 'user' | 'driver' | 'admin';
+export type UserRole = 'user' | 'admin';
 
 export type AuthUser = {
   id: string;

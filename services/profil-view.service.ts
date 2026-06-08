@@ -38,20 +38,6 @@ export function formatProfileMemberLine(iso?: string | null): string {
   return `Membre depuis ${d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`;
 }
 
-export function formatProfileVehicleTitle(u: ProfileViewUserLike): string {
-  const brand = u.vehicleBrand?.trim();
-  const model = u.vehicleModel?.trim();
-  if (brand && model) return `${brand} · ${model}`;
-  if (brand) return brand;
-  if (model) return model;
-  return 'Véhicule non renseigné';
-}
-
-export function formatProfilePlate(u: ProfileViewUserLike): string {
-  const p = u.vehiclePlateNumber?.trim();
-  return p ? `Immat. ${p}` : 'Immatriculation non renseignée';
-}
-
 export function hasAnyIdentityDocuments(u: ProfileViewUserLike | null | undefined): boolean {
   if (!u) return false;
   return Boolean(
@@ -92,7 +78,7 @@ export function getIdentityVerificationPresentation(me: ProfileViewUserLike | nu
       kind: 'approved',
       headline: 'Identité vérifiée',
       detail:
-        'Votre pièce d’identité a été acceptée. Les passagers voient que votre profil est vérifié.',
+        'Votre pièce d’identité a été acceptée. Les autres membres voient que votre profil est vérifié.',
       badge: 'Vérifié',
     };
   }

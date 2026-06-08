@@ -27,14 +27,6 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         <Stack.Screen
-          name="trip-view"
-          options={{
-            presentation: 'modal',
-            title: '',
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
           name="member/[id]"
           options={{
             presentation: 'modal',
@@ -48,32 +40,6 @@ export default function RootLayout() {
             presentation: 'modal',
             title: '',
             headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="search-results"
-          options={{
-            title: 'Résultats',
-            headerBackTitle: 'Retour',
-            headerShadowVisible: false,
-            headerStyle: {
-              backgroundColor: colorScheme === 'dark' ? '#0D0D0F' : '#EDEFF2',
-            },
-            headerTintColor: colorScheme === 'dark' ? '#ECEDEE' : '#11181C',
-            headerTitleStyle: { fontWeight: '700', fontSize: 17 },
-          }}
-        />
-        <Stack.Screen
-          name="my-trips"
-          options={{
-            title: 'Trajets',
-            headerBackTitle: 'Retour',
-            headerShadowVisible: false,
-            headerStyle: {
-              backgroundColor: colorScheme === 'dark' ? '#0D0D0F' : '#EDEFF2',
-            },
-            headerTintColor: colorScheme === 'dark' ? '#ECEDEE' : '#11181C',
-            headerTitleStyle: { fontWeight: '700', fontSize: 17 },
           }}
         />
         <Stack.Screen

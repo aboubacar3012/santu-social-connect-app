@@ -20,9 +20,14 @@ export type MeApiUser = {
   identityVerificationDocumentFront?: string | null;
   identityVerificationDocumentBack?: string | null;
   identityVerificationDocumentSelfie?: string | null;
-  vehicleBrand?: string | null;
-  vehicleModel?: string | null;
-  vehiclePlateNumber?: string | null;
+  jobTitle?: string | null;
+  company?: string | null;
+  quartier?: string | null;
+  city?: string | null;
+  bio?: string | null;
+  directoryVisible?: boolean;
+  showEmailInDirectory?: boolean;
+  showPhoneInDirectory?: boolean;
 };
 
 export type ProfileViewUserLike = {
@@ -31,9 +36,6 @@ export type ProfileViewUserLike = {
   phoneE164?: string | null;
   dateOfBirth?: string | null;
   createdAt?: string | null;
-  vehicleBrand?: string | null;
-  vehicleModel?: string | null;
-  vehiclePlateNumber?: string | null;
   identityVerified?: boolean;
   identityVerificationStatus?: ProfileIdentityStatus;
   rejectedAt?: string | null;

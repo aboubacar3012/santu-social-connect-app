@@ -37,7 +37,6 @@ const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').re
  * Champs alignés sur le modèle Prisma `User` (Santu-api/prisma/schema.prisma).
  * - firstName, lastName, dateOfBirth (jour / mois / année → API), profilePicture
  * - email (éditable) — le téléphone est défini à l’inscription / auth, non affiché ici
- * - vehicleBrand, vehicleModel, vehiclePlateNumber
  * - identityVerificationDocumentFront | Back | Selfie
  */
 
@@ -78,11 +77,6 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
   /* Contact */
   const [email, setEmail] = useState('');
 
-  /* Véhicule */
-  const [vehicleBrand, setVehicleBrand] = useState('');
-  const [vehicleModel, setVehicleModel] = useState('');
-  const [vehiclePlateNumber, setVehiclePlateNumber] = useState('');
-
   /* Pièces d’identité */
   const [identityVerificationDocumentFront, setIdentityVerificationDocumentFront] = useState<string | null>(null);
   const [identityVerificationDocumentBack, setIdentityVerificationDocumentBack] = useState<string | null>(null);
@@ -97,9 +91,6 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
     setBirthYear(parts.y);
     setProfilePicture(resolveProfileImageUri(u.profilePicture ?? null));
     setEmail(u.email?.trim() ?? authUser?.email?.trim() ?? '');
-    setVehicleBrand(u.vehicleBrand?.trim() ?? '');
-    setVehicleModel(u.vehicleModel?.trim() ?? '');
-    setVehiclePlateNumber(u.vehiclePlateNumber?.trim() ?? '');
     setIdentityVerificationDocumentFront(
       resolveProfileImageUri(u.identityVerificationDocumentFront ?? null),
     );
@@ -196,11 +187,7 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
         identityVerificationDocumentFront: idFrontPayload,
         identityVerificationDocumentBack: idBackPayload,
         identityVerificationDocumentSelfie: idSelfiePayload,
-        vehicleBrand: vehicleBrand.trim(),
-        vehicleModel: vehicleModel.trim(),
       };
-      const plate = vehiclePlateNumber.trim();
-      payload.vehiclePlateNumber = plate.length ? plate : null;
 
       const res = await fetch(`${API_BASE}/users/me`, {
         method: 'PATCH',
@@ -250,9 +237,6 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
     profilePicture,
     saving,
     token,
-    vehicleBrand,
-    vehicleModel,
-    vehiclePlateNumber,
   ]);
 
   return (
@@ -369,55 +353,6 @@ export default function ProfilEdit({ onCancel, onSave }: ProfilEditProps) {
             E-mail vérifié — un nouveau mail imposera une confirmation.
           </ThemedText>
         ) : null} */}
-          </SectionCard>
-
-          <SectionCard surface={surface} borderColor={borderSubtle}>
-            <View style={styles.kickerBlock}>
-              <SectionKicker color={muted}>VÉHICULE</SectionKicker>
-            </View>
-            <View style={styles.twoCols}>
-              <View style={styles.col}>
-                <Field
-                  label="Marque"
-                  value={vehicleBrand}
-                  onChangeText={setVehicleBrand}
-                  placeholder="Ex. Toyota"
-                  icon="precision-manufacturing"
-                  themeText={theme.text}
-                  themeMuted={muted}
-                  fieldBg={fieldBg}
-                  borderColor={borderSubtle}
-                  autoCapitalize="words"
-                />
-              </View>
-              <View style={styles.col}>
-                <Field
-                  label="Modèle"
-                  value={vehicleModel}
-                  onChangeText={setVehicleModel}
-                  placeholder="Ex. RAV4"
-                  icon="directions-car"
-                  themeText={theme.text}
-                  themeMuted={muted}
-                  fieldBg={fieldBg}
-                  borderColor={borderSubtle}
-                  autoCapitalize="words"
-                />
-              </View>
-            </View>
-            <View style={styles.fieldSpacer} />
-            <Field
-              label="Immatriculation"
-              value={vehiclePlateNumber}
-              onChangeText={setVehiclePlateNumber}
-              placeholder="Ex. RC 1234 AB"
-              icon="pin"
-              themeText={theme.text}
-              themeMuted={muted}
-              fieldBg={fieldBg}
-              borderColor={borderSubtle}
-              autoCapitalize="characters"
-            />
           </SectionCard>
 
           <SectionCard surface={surface} borderColor={borderSubtle}>
