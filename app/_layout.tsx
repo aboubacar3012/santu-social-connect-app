@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { AuthProvider } from '@/contexts/auth-context';
+import { EventFavoritesProvider } from '@/contexts/event-favorites-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -19,6 +20,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
+      <EventFavoritesProvider>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="auth/index" options={{ headerShown: false }} />
@@ -26,6 +28,22 @@ export default function RootLayout() {
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         <Stack.Screen
           name="trip-view"
+          options={{
+            presentation: 'modal',
+            title: '',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="member/[id]"
+          options={{
+            presentation: 'modal',
+            title: '',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="event/[id]"
           options={{
             presentation: 'modal',
             title: '',
@@ -73,6 +91,7 @@ export default function RootLayout() {
         />
 
         </Stack>
+      </EventFavoritesProvider>
       <StatusBar style="auto" />
       </AuthProvider>
     </ThemeProvider>

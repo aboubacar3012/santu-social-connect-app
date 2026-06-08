@@ -1,98 +1,16 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { MemberCard } from '@/components/annuaire/member-card';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
+import { MOCK_MEMBERS, type Member } from '@/constants/mock-members';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
-
-type Member = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  avatar: string;
-  jobTitle: string;
-  company?: string;
-  quartier: string;
-};
-
-const MOCK_MEMBERS: Member[] = [
-  {
-    id: '1',
-    firstName: 'Léa',
-    lastName: 'Martin',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80',
-    jobTitle: 'Fondatrice',
-    company: 'Marseille Labs',
-    quartier: 'Joliette',
-  },
-  {
-    id: '2',
-    firstName: 'Karim',
-    lastName: 'Benali',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
-    jobTitle: 'CEO',
-    company: 'Azur Retail',
-    quartier: 'Prado',
-  },
-  {
-    id: '3',
-    firstName: 'Sophie',
-    lastName: 'Durand',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80',
-    jobTitle: 'Consultante indépendante',
-    quartier: 'Euroméditerranée',
-  },
-  {
-    id: '4',
-    firstName: 'Thomas',
-    lastName: 'Roux',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80',
-    jobTitle: 'Agent immobilier',
-    company: 'Phocéa Home',
-    quartier: 'Vieux-Port',
-  },
-  {
-    id: '5',
-    firstName: 'Nadia',
-    lastName: 'El Amrani',
-    avatar: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=400&q=80',
-    jobTitle: 'Kinésithérapeute',
-    company: 'Cabinet Santé Sud',
-    quartier: 'Cours Julien',
-  },
-  {
-    id: '6',
-    firstName: 'Julien',
-    lastName: 'Moreau',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80',
-    jobTitle: 'Producteur',
-    company: 'Méditerranée Créative',
-    quartier: 'Panier',
-  },
-  {
-    id: '7',
-    firstName: 'Amina',
-    lastName: 'Diallo',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80',
-    jobTitle: 'CTO',
-    company: 'Harbor Tech',
-    quartier: 'Joliette',
-  },
-  {
-    id: '8',
-    firstName: 'Marc',
-    lastName: 'Lefèvre',
-    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&q=80',
-    jobTitle: 'Gérant',
-    company: 'Provence BTP',
-    quartier: 'Saint-Barnabé',
-  },
-];
 
 function normalize(s: string): string {
   return s.trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
@@ -114,6 +32,7 @@ export default function AnnuaireScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
+  const router = useRouter();
 
   const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
   const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
@@ -127,13 +46,17 @@ export default function AnnuaireScreen() {
     return MOCK_MEMBERS.filter((m) => {
       if (!q) return true;
       const haystack = normalize(
-        `${m.firstName} ${m.lastName} ${m.company ?? ''} ${m.jobTitle} ${m.quartier}`
+        `${m.firstName} ${m.lastName} ${m.company ?? ''} ${m.jobTitle} ${m.quartier} ${m.city}`
       );
       return haystack.includes(q);
     });
   }, [query]);
 
   const { left, right } = useMemo(() => splitColumns(members), [members]);
+
+  const openMember = (id: string) => {
+    router.push(`/member/${id}`);
+  };
 
   return (
     <SafeScrollView screenBackgroundColor={pageBg} keyboardAvoiding>
@@ -187,6 +110,7 @@ export default function AnnuaireScreen() {
                 jobTitle={member.jobTitle}
                 company={member.company}
                 quartier={member.quartier}
+                onPress={() => openMember(member.id)}
               />
             ))}
           </View>
@@ -200,6 +124,7 @@ export default function AnnuaireScreen() {
                 jobTitle={member.jobTitle}
                 company={member.company}
                 quartier={member.quartier}
+                onPress={() => openMember(member.id)}
               />
             ))}
           </View>
