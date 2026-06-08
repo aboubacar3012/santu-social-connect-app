@@ -1,423 +1,658 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import {
-  Keyboard,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { Image } from 'expo-image';
+import React, { useMemo, useState } from 'react';
+import { Linking, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
-import { CITIES } from '@/constants/fake-trips';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const PLACES_OPTIONS = [1, 2, 3, 4];
+const ACCENT = '#0077B6';
+const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
 
-function normalize(s: string): string {
-  return s.trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+type EventType = 'Afterwork' | 'Conference' | 'Networking' | 'Workshop' | "Concert" | "Exposition" | "Sortie" | "Autre";
+type DateFilter = 'upcoming' | 'this_week' | 'this_month' | 'past';
+type DateSort = 'soonest' | 'recent';
+type SelectKey = 'type' | 'date' | null;
+
+type SelectOption<T extends string> = { value: T; label: string };
+
+type EventLink = {
+  label: string;
+  url: string;
+};
+
+type EventDate = {
+  day: number;
+  month: number;
+  year: number;
+};
+
+type EventItem = {
+  id: string;
+  title: string;
+  type: EventType;
+  image: string;
+  description: string;
+  date: EventDate;
+  time: string;
+  address: string;
+  links: EventLink[];
+  startsAt: number;
+};
+
+const MONTH_LABELS = [
+  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+] as const;
+
+function formatEventDate(date: EventDate): string {
+  const month = MONTH_LABELS[date.month - 1] ?? '';
+  return `${date.day} ${month} ${date.year}`;
 }
 
-function filterCities(query: string, exclude: string): string[] {
-  const q = normalize(query);
-  const ex = normalize(exclude);
-  const all = q ? CITIES.filter((c) => normalize(c).includes(q)) : CITIES;
-  return all.filter((c) => normalize(c) !== ex).slice(0, 5);
+function buildStartsAt(date: EventDate, time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  return new Date(date.year, date.month - 1, date.day, hours, minutes).getTime();
 }
 
-export default function RechercherScreen() {
-  const router = useRouter();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-  const isDark = colorScheme === 'dark';
+function dateFromDaysFromNow(days: number): EventDate {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return { day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() };
+}
 
-  const dividerColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-  const inputBg = isDark ? 'rgba(255,255,255,0.05)' : '#f5f5f7';
-  const cardBg = isDark ? '#1c1c1e' : '#ffffff';
+function mockEvent(
+  partial: Omit<EventItem, 'startsAt'> & { startsAt?: number }
+): EventItem {
+  const startsAt = partial.startsAt ?? buildStartsAt(partial.date, partial.time);
+  return { ...partial, startsAt };
+}
 
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [places, setPlaces] = useState<number | null>(null);
-  const [activeField, setActiveField] = useState<'from' | 'to' | null>(null);
+const MOCK_EVENTS: EventItem[] = [
+  mockEvent({
+    id: '1',
+    title: 'Afterwork fondateurs — Vieux-Port',
+    type: 'Afterwork',
+    image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&q=80',
+    description:
+      'Rencontre informelle entre fondateurs marseillais autour d’un verre, avec pitches éclair et échanges libres.',
+    date: dateFromDaysFromNow(4),
+    time: '19:00',
+    address: '12 Quai du Port, 13002 Marseille',
+    links: [
+      { label: 'Billetterie', url: 'https://example.com/afterwork-vieux-port' },
+      { label: 'Site', url: 'https://example.com' },
+    ],
+  }),
+  mockEvent({
+    id: '2',
+    title: 'Pitch & pizza — Joliette',
+    type: 'Networking',
+    image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=80',
+    description:
+      'Soirée networking avec présentations de projets locaux, suivies d’un moment convivial autour de pizzas artisanales.',
+    date: dateFromDaysFromNow(6),
+    time: '18:30',
+    address: '45 Rue de la République, 13002 Marseille',
+    links: [{ label: 'S\'inscrire', url: 'https://example.com/pitch-pizza' }],
+  }),
+  mockEvent({
+    id: '3',
+    title: 'Levée de fonds : retours d’expérience',
+    type: 'Conference',
+    image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=800&q=80',
+    description:
+      'Conférence avec entrepreneurs et investisseurs marseillais : parcours, erreurs à éviter et bonnes pratiques pour lever des fonds.',
+    date: dateFromDaysFromNow(10),
+    time: '09:30',
+    address: '2 Place de la Major, 13002 Marseille',
+    links: [
+      { label: 'Programme', url: 'https://example.com/levee-fonds' },
+      { label: 'LinkedIn', url: 'https://linkedin.com' },
+    ],
+  }),
+  mockEvent({
+    id: '4',
+    title: 'Atelier personal branding',
+    type: 'Workshop',
+    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
+    description:
+      'Atelier pratique pour travailler votre image de marque, votre pitch et votre présence sur les réseaux professionnels.',
+    date: dateFromDaysFromNow(12),
+    time: '14:00',
+    address: '18 Cours Julien, 13006 Marseille',
+    links: [{ label: 'Réserver', url: 'https://example.com/branding' }],
+  }),
+  mockEvent({
+    id: '5',
+    title: 'Breakfast entrepreneurs — Prado',
+    type: 'Networking',
+    image: 'https://images.unsplash.com/photo-1528605114965-762b8517a3e0?w=800&q=80',
+    description:
+      'Petit-déjeuner networking pour démarrer la journée, rencontrer d’autres entrepreneurs et partager vos actualités.',
+    date: dateFromDaysFromNow(14),
+    time: '08:00',
+    address: '88 Avenue du Prado, 13008 Marseille',
+    links: [{ label: 'Billetterie', url: 'https://example.com/breakfast-prado' }],
+  }),
+  mockEvent({
+    id: '6',
+    title: 'Speed networking — La Plaine',
+    type: 'Networking',
+    image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&q=80',
+    description:
+      'Sessions de rencontres rapides en one-to-one pour élargir votre réseau professionnel en une soirée.',
+    date: dateFromDaysFromNow(-5),
+    time: '18:00',
+    address: '5 Boulevard Chave, 13005 Marseille',
+    links: [{ label: 'Replay', url: 'https://example.com/speed-networking' }],
+  }),
+];
 
-  const fromRef = useRef<TextInput>(null);
-  const toRef = useRef<TextInput>(null);
+const TYPE_OPTIONS: SelectOption<EventType | 'All'>[] = [
+  { value: 'All', label: 'Tous les types' },
+  { value: 'Afterwork', label: 'Afterwork' },
+  { value: 'Conference', label: 'Conférence' },
+  { value: 'Networking', label: 'Networking' },
+  { value: 'Workshop', label: 'Atelier' },
+  { value: 'Concert', label: 'Concert' },
+  { value: 'Exposition', label: 'Exposition' },
+  { value: 'Sortie', label: 'Sortie' },
+  { value: 'Autre', label: 'Autre' },
+];
 
-  const fromSuggestions = useMemo(
-    () => (activeField === 'from' ? filterCities(from, to) : []),
-    [from, to, activeField]
-  );
-  const toSuggestions = useMemo(
-    () => (activeField === 'to' ? filterCities(to, from) : []),
-    [from, to, activeField]
-  );
+const DATE_OPTIONS: SelectOption<DateFilter>[] = [
+  { value: 'upcoming', label: 'À venir' },
+  { value: 'this_week', label: 'Cette semaine' },
+  { value: 'this_month', label: 'Ce mois' },
+  { value: 'past', label: 'Passés' },
+];
 
-  const selectFrom = useCallback((city: string) => {
-    setFrom(city);
-    setActiveField('to');
-    setTimeout(() => toRef.current?.focus(), 80);
-  }, []);
+const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  Afterwork: 'Afterwork',
+  Conference: 'Conférence',
+  Networking: 'Networking',
+  Workshop: 'Atelier',
+  Concert: 'Concert',
+  Exposition: 'Exposition',
+  Sortie: 'Sortie',
+  Autre: 'Autre',
+};
 
-  const selectTo = useCallback((city: string) => {
-    setTo(city);
-    setActiveField(null);
-    Keyboard.dismiss();
-  }, []);
+type FilterSelectProps<T extends string> = {
+  label: string;
+  placeholder: string;
+  value: T;
+  defaultValue: T;
+  options: SelectOption<T>[];
+  onChange: (value: T) => void;
+  open: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  textColor: string;
+  mutedColor: string;
+  surfaceColor: string;
+  borderColor: string;
+  /** Affiche le libellé sélectionné même pour la valeur par défaut */
+  showSelectedWhenDefault?: boolean;
+};
 
-  const handleSwap = useCallback(() => {
-    setFrom(to);
-    setTo(from);
-  }, [from, to]);
-
-  const canSearch = from.trim().length > 0 && to.trim().length > 0;
-
-  const handleSearch = useCallback(() => {
-    const f = from.trim();
-    const t = to.trim();
-    if (!f || !t) return;
-    Keyboard.dismiss();
-    router.push({
-      pathname: '/search-results',
-      params: { from: f, to: t, ...(places != null ? { places: String(places) } : {}) },
-    });
-  }, [from, to, places, router]);
-
-  const activeSuggestions = activeField === 'from' ? fromSuggestions : toSuggestions;
-  const onSelectSuggestion = activeField === 'from' ? selectFrom : selectTo;
+function FilterSelect<T extends string>({
+  label,
+  placeholder,
+  value,
+  defaultValue,
+  options,
+  onChange,
+  open,
+  onOpen,
+  onClose,
+  textColor,
+  mutedColor,
+  surfaceColor,
+  borderColor,
+  showSelectedWhenDefault = false,
+}: FilterSelectProps<T>) {
+  const selected = options.find((o) => o.value === value);
+  const isDefault = value === defaultValue;
+  const showLabel = showSelectedWhenDefault || !isDefault;
+  const triggerLabel = showLabel ? (selected?.label ?? placeholder) : placeholder;
 
   return (
-    <SafeScrollView centerContent keyboardAvoiding>
-      {/* ─── EN-TÊTE ─── */}
-      <View style={styles.header}>
-        <ThemedText style={[styles.hello, { color: theme.icon }]}>Bonjour,</ThemedText>
-        <ThemedText style={[styles.name, { color: theme.text }]}>Aboubacar.</ThemedText>
-        <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-          Où souhaitez-vous aller ?
-        </ThemedText>
+    <>
+      <View style={styles.selectField}>
+        <Pressable
+          onPress={onOpen}
+          style={[styles.selectTrigger, { backgroundColor: surfaceColor, borderColor }]}
+        >
+          <ThemedText
+            style={[styles.selectValue, { color: showLabel ? textColor : mutedColor }]}
+            numberOfLines={1}
+          >
+            {triggerLabel}
+          </ThemedText>
+          <MaterialIcons name="keyboard-arrow-down" size={18} color={mutedColor} />
+        </Pressable>
       </View>
 
-      {/* ─── CARTE DE RECHERCHE ─── */}
-      <View style={[styles.card, { backgroundColor: cardBg, shadowColor: isDark ? '#000' : '#555' }]}>
-        {/* Champs départ + arrivée */}
-        <View style={styles.routeBlock}>
-          {/* Colonne icônes + ligne de connexion */}
-          <View style={styles.iconsCol}>
-            <View style={[styles.dot, { backgroundColor: theme.tint }]} />
-            <View style={[styles.connector, { backgroundColor: dividerColor }]} />
-            <View style={[styles.dotRing, { borderColor: theme.text }]} />
-          </View>
-
-          {/* Colonne inputs */}
-          <View style={styles.inputsCol}>
-            <TextInput
-              ref={fromRef}
-              value={from}
-              onChangeText={setFrom}
-              onFocus={() => setActiveField('from')}
-              onBlur={() => setTimeout(() => setActiveField((a) => (a === 'from' ? null : a)), 200)}
-              placeholder="Ville de départ"
-              placeholderTextColor={theme.icon}
-              style={[
-                styles.routeInput,
-                { color: theme.text, backgroundColor: activeField === 'from' ? inputBg : 'transparent' },
-              ]}
-              autoCapitalize="words"
-              returnKeyType="next"
-              onSubmitEditing={() => toRef.current?.focus()}
-              clearButtonMode={Platform.OS === 'ios' ? 'while-editing' : 'never'}
-            />
-            {from.length > 0 && Platform.OS !== 'ios' && activeField === 'from' && (
-              <Pressable
-                onPress={() => { setFrom(''); fromRef.current?.focus(); }}
-                hitSlop={10}
-                style={styles.clearInline}
-              >
-                <MaterialIcons name="close" size={16} color={theme.icon} />
-              </Pressable>
-            )}
-
-            <View style={[styles.inputDivider, { backgroundColor: dividerColor }]} />
-
-            <TextInput
-              ref={toRef}
-              value={to}
-              onChangeText={setTo}
-              onFocus={() => setActiveField('to')}
-              onBlur={() => setTimeout(() => setActiveField((a) => (a === 'to' ? null : a)), 200)}
-              placeholder="Ville d'arrivée"
-              placeholderTextColor={theme.icon}
-              style={[
-                styles.routeInput,
-                { color: theme.text, backgroundColor: activeField === 'to' ? inputBg : 'transparent' },
-              ]}
-              autoCapitalize="words"
-              returnKeyType="search"
-              onSubmitEditing={handleSearch}
-              clearButtonMode={Platform.OS === 'ios' ? 'while-editing' : 'never'}
-            />
-            {to.length > 0 && Platform.OS !== 'ios' && activeField === 'to' && (
-              <Pressable
-                onPress={() => { setTo(''); toRef.current?.focus(); }}
-                hitSlop={10}
-                style={styles.clearInline}
-              >
-                <MaterialIcons name="close" size={16} color={theme.icon} />
-              </Pressable>
-            )}
-          </View>
-
-          {/* Bouton swap */}
-          {(from.length > 0 || to.length > 0) && (
-            <Pressable
-              onPress={handleSwap}
-              style={[styles.swapBtn, { backgroundColor: inputBg, borderColor: dividerColor }]}
-              hitSlop={6}
-            >
-              <MaterialIcons name="swap-vert" size={18} color={theme.icon} />
-            </Pressable>
-          )}
-        </View>
-
-        {/* ─── SUGGESTIONS (chips) ─── */}
-        {activeSuggestions.length > 0 && (
-          <View style={[styles.suggestionsWrap, { borderTopColor: dividerColor }]}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={styles.suggestionsScroll}
-            >
-              {activeSuggestions.map((city) => (
-                <Pressable
-                  key={city}
-                  onPress={() => onSelectSuggestion(city)}
-                  style={[styles.suggestionChip, { backgroundColor: inputBg }]}
-                >
-                  <MaterialIcons name="place" size={13} color={theme.tint} />
-                  <ThemedText style={[styles.suggestionChipText, { color: theme.text }]}>
-                    {city}
-                  </ThemedText>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ─── PLACES ─── */}
-        <View style={[styles.placesRow, { borderTopColor: dividerColor }]}>
-          <ThemedText style={[styles.placesLabel, { color: theme.icon }]}>Places min.</ThemedText>
-          <View style={styles.chips}>
-            {PLACES_OPTIONS.map((n) => {
-              const active = places === n;
+      <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+        <Pressable style={styles.selectOverlay} onPress={onClose}>
+          <Pressable
+            style={[styles.selectSheet, { backgroundColor: surfaceColor, borderColor }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <ThemedText style={[styles.selectSheetTitle, { color: textColor }]}>{label}</ThemedText>
+            {options.map((opt) => {
+              const active = opt.value === value;
               return (
                 <Pressable
-                  key={n}
-                  onPress={() => setPlaces(active ? null : n)}
+                  key={opt.value}
+                  onPress={() => {
+                    onChange(opt.value);
+                    onClose();
+                  }}
                   style={[
-                    styles.chip,
-                    active
-                      ? { backgroundColor: theme.tint }
-                      : { backgroundColor: inputBg },
+                    styles.selectOption,
+                    active && { backgroundColor: `${ACCENT}14` },
+                    { borderBottomColor: borderColor },
                   ]}
                 >
-                  <ThemedText style={[styles.chipText, { color: active ? '#1a1a1a' : theme.text }]}>
-                    {n}
+                  <ThemedText
+                    style={[
+                      styles.selectOptionText,
+                      { color: active ? ACCENT : textColor, fontWeight: active ? '700' : '500' },
+                    ]}
+                  >
+                    {opt.label}
                   </ThemedText>
+                  {active ? <MaterialIcons name="check" size={20} color={ACCENT} /> : null}
                 </Pressable>
               );
             })}
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
 
-        {/* ─── BOUTON RECHERCHER ─── */}
+function isThisWeek(ts: number, now: Date): boolean {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const day = start.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  start.setDate(start.getDate() + diffToMonday);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  return ts >= start.getTime() && ts < end.getTime();
+}
+
+function isThisMonth(ts: number, now: Date): boolean {
+  return (
+    new Date(ts).getFullYear() === now.getFullYear() &&
+    new Date(ts).getMonth() === now.getMonth()
+  );
+}
+
+function matchesDateFilter(event: EventItem, filter: DateFilter, now: Date): boolean {
+  const ts = event.startsAt;
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+
+  switch (filter) {
+    case 'upcoming':
+      return ts >= todayStart.getTime();
+    case 'this_week':
+      return isThisWeek(ts, now);
+    case 'this_month':
+      return isThisMonth(ts, now);
+    case 'past':
+      return ts < todayStart.getTime();
+  }
+}
+
+export default function EventsScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const theme = Colors[colorScheme ?? 'light'];
+
+  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
+  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
+  const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
+  const [typeFilter, setTypeFilter] = useState<EventType | 'All'>('All');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('upcoming');
+  const dateSort: DateSort = 'soonest';
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set(['1', '3']));
+  const [openSelect, setOpenSelect] = useState<SelectKey>(null);
+
+  const toggleFavorite = (id: string) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const events = useMemo(() => {
+    const now = new Date();
+    let list = MOCK_EVENTS.filter((e) => {
+      if (typeFilter !== 'All' && e.type !== typeFilter) return false;
+      if (!matchesDateFilter(e, dateFilter, now)) return false;
+      if (favoritesOnly && !favoriteIds.has(e.id)) return false;
+      return true;
+    });
+
+    list.sort((a, b) =>
+      dateSort === 'soonest' ? a.startsAt - b.startsAt : b.startsAt - a.startsAt
+    );
+    return list;
+  }, [typeFilter, dateFilter, dateSort, favoritesOnly, favoriteIds]);
+
+  const hasActiveFilters =
+    typeFilter !== 'All' || dateFilter !== 'upcoming' || favoritesOnly;
+
+  const resetFilters = () => {
+    setTypeFilter('All');
+    setDateFilter('upcoming');
+    setFavoritesOnly(false);
+  };
+
+  return (
+    <SafeScrollView screenBackgroundColor={pageBg}>
+      <View style={styles.header}>
+        <ThemedText style={[styles.kicker, { color: theme.icon }]}>MARSEILLE</ThemedText>
+        <ThemedText style={[styles.title, { color: theme.text }]}>Événements</ThemedText>
+        <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
+          Afterworks, conférences et rencontres entre entrepreneurs.
+        </ThemedText>
+      </View>
+
+      <View style={styles.filtersRow}>
         <Pressable
+          onPress={() => setFavoritesOnly((v) => !v)}
           style={[
-            styles.searchBtn,
+            styles.filterIconBtn,
             {
-              backgroundColor: canSearch
-                ? theme.tint
-                : isDark
-                  ? 'rgba(255,255,255,0.08)'
-                  : 'rgba(0,0,0,0.07)',
+              backgroundColor: favoritesOnly ? `${ACCENT}18` : cardBg,
+              borderColor: favoritesOnly ? ACCENT : divider,
             },
           ]}
-          onPress={handleSearch}
-          disabled={!canSearch}
         >
-          <MaterialIcons name="search" size={20} color={canSearch ? '#1a1a1a' : theme.icon} />
-          <ThemedText
-            style={[styles.searchBtnText, { color: canSearch ? '#1a1a1a' : theme.icon }]}
-          >
-            Rechercher
-          </ThemedText>
+          <MaterialIcons
+            name={favoritesOnly ? 'favorite' : 'favorite-border'}
+            size={20}
+            color={ACCENT}
+          />
         </Pressable>
+        <FilterSelect
+          label="Date"
+          placeholder="À venir"
+          value={dateFilter}
+          defaultValue="upcoming"
+          options={DATE_OPTIONS}
+          onChange={setDateFilter}
+          open={openSelect === 'date'}
+          onOpen={() => setOpenSelect('date')}
+          onClose={() => setOpenSelect(null)}
+          textColor={theme.text}
+          mutedColor={theme.icon}
+          surfaceColor={cardBg}
+          borderColor={divider}
+          showSelectedWhenDefault
+        />
+        <FilterSelect
+          label="Type d'événement"
+          placeholder="Type"
+          value={typeFilter}
+          defaultValue="All"
+          options={TYPE_OPTIONS}
+          onChange={setTypeFilter}
+          open={openSelect === 'type'}
+          onOpen={() => setOpenSelect('type')}
+          onClose={() => setOpenSelect(null)}
+          textColor={theme.text}
+          mutedColor={theme.icon}
+          surfaceColor={cardBg}
+          borderColor={divider}
+        />
+
+
+        {hasActiveFilters ? (
+          <Pressable
+            onPress={resetFilters}
+            hitSlop={8}
+            style={[styles.filterIconBtn, { backgroundColor: cardBg, borderColor: divider }]}
+          >
+            <MaterialIcons name="refresh" size={20} color={ACCENT} />
+          </Pressable>
+        ) : null}
       </View>
+
+      <ThemedText style={[styles.resultCount, { color: theme.icon }]}>
+        {events.length} événement{events.length > 1 ? 's' : ''}
+      </ThemedText>
+
+      <View style={styles.list}>
+        {events.length === 0 ? (
+          <View style={[styles.empty, { backgroundColor: cardBg, borderColor: divider }]}>
+            <MaterialIcons name="event-busy" size={32} color={theme.icon} />
+            <ThemedText style={[styles.emptyText, { color: theme.icon }]}>
+              {favoritesOnly
+                ? 'Aucun favori pour ces filtres. Ajoutez des événements avec le cœur.'
+                : 'Aucun événement pour ces filtres.'}
+            </ThemedText>
+          </View>
+        ) : (
+          events.map((event) => {
+            const isFavorite = favoriteIds.has(event.id);
+            const isPast = event.startsAt < new Date().setHours(0, 0, 0, 0);
+
+            return (
+              <Pressable
+                key={event.id}
+                style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}
+              >
+                <View style={styles.cardImageWrap}>
+                  <Image source={{ uri: event.image }} style={styles.cardImage} contentFit="cover" />
+                  <View style={styles.cardImageOverlay}>
+                    <View style={[styles.typeBadge, { backgroundColor: 'rgba(255,255,255,0.92)' }]}>
+                      <ThemedText style={[styles.typeBadgeText, { color: ACCENT }]}>
+                        {EVENT_TYPE_LABELS[event.type]}
+                      </ThemedText>
+                    </View>
+                    <Pressable
+                      onPress={() => toggleFavorite(event.id)}
+                      hitSlop={12}
+                      style={[styles.favOnImage, { backgroundColor: 'rgba(255,255,255,0.92)' }]}
+                    >
+                      <MaterialIcons
+                        name={isFavorite ? 'favorite' : 'favorite-border'}
+                        size={20}
+                        color={isFavorite ? ACCENT : theme.icon}
+                      />
+                    </Pressable>
+                  </View>
+                  {isPast ? (
+                    <View style={[styles.pastBanner, { backgroundColor: 'rgba(0,0,0,0.55)' }]}>
+                      <ThemedText style={styles.pastBannerText}>Passé</ThemedText>
+                    </View>
+                  ) : null}
+                </View>
+
+                <View style={styles.cardBody}>
+                  <ThemedText style={[styles.cardTitle, { color: theme.text }]}>{event.title}</ThemedText>
+
+                  <View style={styles.metaItem}>
+                    <MaterialIcons name="calendar-today" size={15} color={ACCENT} />
+                    <ThemedText style={[styles.metaText, { color: theme.icon }]}>
+                      {formatEventDate(event.date)} · {event.time}
+                    </ThemedText>
+                  </View>
+
+                  <ThemedText style={[styles.description, { color: theme.icon }]} numberOfLines={3}>
+                    {event.description}
+                  </ThemedText>
+
+                  <View style={styles.metaItem}>
+                    <MaterialIcons name="place" size={15} color={ACCENT} />
+                    <ThemedText style={[styles.address, { color: theme.text }]}>{event.address}</ThemedText>
+                  </View>
+
+                  {event.links.length > 0 ? (
+                    <View style={styles.linksRow}>
+                      {event.links.map((link) => (
+                        <Pressable
+                          key={`${event.id}-${link.url}`}
+                          onPress={() => Linking.openURL(link.url)}
+                          style={[styles.linkChip, { backgroundColor: chipBg, borderColor: divider }]}
+                        >
+                          <MaterialIcons name="link" size={13} color={ACCENT} />
+                          <ThemedText style={[styles.linkChipText, { color: ACCENT }]}>
+                            {link.label}
+                          </ThemedText>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          })
+        )}
+      </View>
+
+      <View style={styles.tabBarSpacer} />
     </SafeScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    marginBottom: 32,
-    gap: 2,
-  },
-  hello: {
-    fontSize: 17,
-    fontWeight: '500',
-    letterSpacing: 0.1,
-  },
-  name: {
-    fontSize: 40,
-    fontWeight: '800',
-    letterSpacing: -1.5,
-    lineHeight: 46,
-    marginTop: 2,
-  },
-  subtitle: {
-    fontSize: 15,
-    fontWeight: '400',
-    letterSpacing: 0.1,
-    marginTop: 10,
-  },
-  card: {
-    borderRadius: 22,
-    overflow: 'hidden',
-    width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  /* Route block */
-  routeBlock: {
+  header: { marginBottom: 16, gap: 4 },
+  kicker: { fontSize: 11, fontWeight: '700', letterSpacing: 2.2 },
+  title: { fontSize: 32, fontWeight: '800', letterSpacing: -1.2, lineHeight: 38 },
+  subtitle: { fontSize: 14, lineHeight: 20, marginTop: 4, maxWidth: 320 },
+  filtersRow: {
     flexDirection: 'row',
-    alignItems: 'stretch',
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    gap: 12,
-  },
-  iconsCol: {
-    width: 18,
     alignItems: 'center',
-    paddingVertical: 20,
-    gap: 0,
-  },
-  dot: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-  },
-  connector: {
-    flex: 1,
-    width: 2,
-    borderRadius: 1,
-    marginVertical: 4,
-  },
-  dotRing: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    borderWidth: 2,
-  },
-  inputsCol: {
-    flex: 1,
-  },
-  routeInput: {
-    fontSize: 16,
-    fontWeight: '500',
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-  },
-  inputDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: 10,
-  },
-  clearInline: {
-    position: 'absolute',
-    right: 10,
-    top: 15,
-    padding: 2,
-  },
-  swapBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-  },
-  /* Suggestions chips */
-  suggestionsWrap: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 10,
-  },
-  suggestionsScroll: {
-    paddingHorizontal: 16,
     gap: 8,
-    flexDirection: 'row',
+    marginBottom: 14,
   },
-  suggestionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-    borderRadius: 20,
-  },
-  suggestionChipText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  /* Places */
-  placesRow: {
+  selectField: { flex: 1 },
+  selectTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 4,
+    height: 40,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  placesLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  chips: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  chip: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  selectValue: { flex: 1, fontSize: 13, fontWeight: '600' },
+  filterIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipText: {
-    fontSize: 15,
-    fontWeight: '700',
+  selectOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+    padding: 16,
+    paddingBottom: 32,
   },
-  /* Bouton */
-  searchBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    margin: 14,
-    marginTop: 6,
-    paddingVertical: 16,
+  selectSheet: {
     borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    maxHeight: '70%',
   },
-  searchBtnText: {
+  selectSheetTitle: {
     fontSize: 16,
     fontWeight: '700',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
+  selectOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  selectOptionText: { fontSize: 15 },
+  resultCount: { fontSize: 12, fontWeight: '600', marginBottom: 10, letterSpacing: 0.2 },
+  list: { gap: 12 },
+  card: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  cardImageWrap: { position: 'relative', height: 168 },
+  cardImage: { width: '100%', height: '100%' },
+  cardImageOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  favOnImage: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pastBanner: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 5,
+    alignItems: 'center',
+  },
+  pastBannerText: { color: '#FFF', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
+  typeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  typeBadgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
+  cardBody: { padding: 14, gap: 8 },
+  cardTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.3, lineHeight: 22 },
+  metaItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  metaText: { flex: 1, fontSize: 13, fontWeight: '600' },
+  description: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
+  address: { flex: 1, fontSize: 13, fontWeight: '500', lineHeight: 18 },
+  linksRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
+  linkChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  linkChipText: { fontSize: 12, fontWeight: '600' },
+  empty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: 32,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  emptyText: { fontSize: 14, fontWeight: '500', textAlign: 'center', maxWidth: 280 },
+  tabBarSpacer: { height: 96 },
 });

@@ -1,15 +1,18 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/shared/haptic-tab';
-import { IconSymbol } from '@/components/shared/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+const ACCENT = '#0077B6';
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { isReady, isAuthenticated } = useAuth();
+  const scheme = colorScheme ?? 'light';
 
   if (!isReady) {
     return null;
@@ -21,7 +24,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: ACCENT,
+        tabBarInactiveTintColor: Colors[scheme].tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
@@ -34,7 +38,7 @@ export default function TabLayout() {
           height: 64,
           paddingBottom: 10,
           paddingTop: 10,
-          backgroundColor: Colors[colorScheme ?? 'light'].background,
+          backgroundColor: Colors[scheme].background,
           shadowColor: '#000',
           shadowOpacity: 0.1,
           shadowRadius: 12,
@@ -49,36 +53,27 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Rechercher',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} />,
-        }}
-      />
-
-      <Tabs.Screen
-        name="publish"
-        options={{
-          title: 'Publier',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="plus.circle.fill" color={color} />,
+          title: 'Événements',
+          tabBarIcon: ({ color }) => <MaterialIcons name="event" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="messages"
+        name="annuaire"
         options={{
-          title: 'Messages',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
-          ),
+          title: 'Annuaire',
+          tabBarIcon: ({ color }) => <MaterialIcons name="groups" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profil"
         options={{
-          title: 'Profil',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="person.crop.circle" color={color} />
-          ),
+          title: 'Mon profil',
+          tabBarIcon: ({ color }) => <MaterialIcons name="person" size={24} color={color} />,
         }}
       />
+
+      <Tabs.Screen name="publish" options={{ href: null }} />
+      <Tabs.Screen name="messages" options={{ href: null }} />
     </Tabs>
   );
 }
