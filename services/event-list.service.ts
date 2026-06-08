@@ -1,5 +1,6 @@
+import { toEventTypeApi, toEventTypeUi } from '@/libs/event-type';
 import { formatApiErrorMessage } from '@/services/profil-edit.service';
-import type { ListEventsApiResponse } from '@/types/event';
+import type { EventItem, EventType, ListEventsApiResponse } from '@/types/event';
 
 const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(
   /\/+$/,
@@ -7,10 +8,19 @@ const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').re
 );
 
 export type ListEventsQuery = {
-  type?: string;
+  type?: EventType;
   dateFrom?: string;
   dateTo?: string;
 };
+
+type EventItemWire = Omit<EventItem, 'type'> & { type: string };
+
+function mapEventFromApi(event: EventItemWire): EventItem {
+  return {
+    ...event,
+    type: toEventTypeUi(event.type),
+  };
+}
 
 /**
  * Récupère la liste des événements publiés.
@@ -19,7 +29,7 @@ export async function listEventsApi(
   query: ListEventsQuery = {},
 ): Promise<ListEventsApiResponse> {
   const params = new URLSearchParams();
-  if (query.type) params.set('type', query.type);
+  if (query.type) params.set('type', toEventTypeApi(query.type));
   if (query.dateFrom) params.set('dateFrom', query.dateFrom);
   if (query.dateTo) params.set('dateTo', query.dateTo);
 
@@ -43,10 +53,10 @@ export async function listEventsApi(
     throw new Error(formatApiErrorMessage(body, text || `Erreur ${res.status}`));
   }
 
-  const data = body as Partial<ListEventsApiResponse>;
+  const data = body as { events?: EventItemWire[] };
   if (!Array.isArray(data?.events)) {
     throw new Error('Réponse liste événements invalide.');
   }
 
-  return data as ListEventsApiResponse;
+  return { events: data.events.map(mapEventFromApi) };
 }

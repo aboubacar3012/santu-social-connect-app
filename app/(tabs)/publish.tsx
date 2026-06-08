@@ -9,12 +9,14 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isUserAdmin } from '@/libs/auth';
+import { buildCreateEventPayloadFromForm } from '@/libs/event-form';
+import { createEventApi } from '@/services/event-create.service';
 
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
 
 export default function PublishScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];

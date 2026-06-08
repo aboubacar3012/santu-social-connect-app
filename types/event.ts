@@ -1,40 +1,6 @@
-export type EventType =
-  | 'Afterwork'
-  | 'Conference'
-  | 'Networking'
-  | 'Workshop'
-  | 'Concert'
-  | 'Exposition'
-  | 'Sortie'
-  | 'Autre';
+import type { EventDate, EventItem, EventLink, EventType } from '@/constants/mock-events';
 
-export type EventLink = {
-  label: string;
-  url: string;
-};
-
-export type EventDate = {
-  day: number;
-  month: number;
-  year: number;
-};
-
-export type EventItem = {
-  id: string;
-  title: string;
-  type: EventType;
-  image: string;
-  description: string;
-  date: EventDate;
-  time: string;
-  address: string;
-  links: EventLink[];
-  startsAt: number;
-  status?: string;
-  organizerId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-};
+export type { EventDate, EventItem, EventLink, EventType };
 
 export type ListEventsApiResponse = {
   events: EventItem[];

@@ -1,10 +1,13 @@
+import { toEventTypeUi } from '@/libs/event-type';
 import { formatApiErrorMessage } from '@/services/profil-edit.service';
-import type { GetEventApiResponse } from '@/types/event';
+import type { EventItem, GetEventApiResponse } from '@/types/event';
 
 const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(
   /\/+$/,
   '',
 );
+
+type EventItemWire = Omit<EventItem, 'type'> & { type: string };
 
 /**
  * Récupère le détail d'un événement.
@@ -27,10 +30,15 @@ export async function getEventByIdApi(id: string): Promise<GetEventApiResponse> 
     throw new Error(formatApiErrorMessage(body, text || `Erreur ${res.status}`));
   }
 
-  const data = body as Partial<GetEventApiResponse>;
+  const data = body as { event?: EventItemWire };
   if (!data?.event || typeof data.event !== 'object') {
     throw new Error('Réponse détail événement invalide.');
   }
 
-  return data as GetEventApiResponse;
+  return {
+    event: {
+      ...data.event,
+      type: toEventTypeUi(data.event.type),
+    },
+  };
 }
