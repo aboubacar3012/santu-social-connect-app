@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "Santu",
-    "slug": "santu",
+    "name": "Santu Connect",
+    "slug": "santu-connect",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "santu",
+    "scheme": "santu-connect",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hakimj.santu"
+      "bundleIdentifier": "com.hakimj.santu-connect"
     },
     "android": {
       "adaptiveIcon": {

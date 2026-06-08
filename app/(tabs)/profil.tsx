@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { isUserAdmin } from '@/libs/auth';
 
 const ACCENT = '#0077B6';
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
@@ -53,6 +54,7 @@ export default function ProfilScreen() {
 
   const email = user?.email?.trim() || profile.email;
   const phone = user?.phoneE164 ? formatPhoneE164(user.phoneE164) : '+33 6 12 34 56 78';
+  const isAdmin = isUserAdmin(user);
 
   const editInitial = useMemo<ProfileFormData>(
     () => ({
@@ -122,14 +124,29 @@ export default function ProfilScreen() {
           </View>
         </View>
 
-        <View style={[styles.menu, { backgroundColor: cardBg, borderColor: divider }]}>
-          <Pressable onPress={() => setIsEditing(true)} style={styles.menuRow}>
-            <View style={[styles.menuIcon, { backgroundColor: chipBg }]}>
+        <View style={[styles.actionRow, { backgroundColor: cardBg, borderColor: divider }]}>
+          <Pressable onPress={() => setIsEditing(true)} style={styles.actionBtn}>
+            <View style={[styles.actionIcon, { backgroundColor: chipBg }]}>
               <MaterialIcons name="edit" size={18} color={ACCENT} />
             </View>
-            <ThemedText style={[styles.menuLabel, { color: theme.text }]}>Modifier mon profil</ThemedText>
-            <MaterialIcons name="chevron-right" size={20} color={theme.icon} />
+            <ThemedText style={[styles.actionLabel, { color: theme.text }]} numberOfLines={2}>
+              Modifier mon profil
+            </ThemedText>
           </Pressable>
+
+          {isAdmin ? (
+            <>
+              <View style={[styles.actionDivider, { backgroundColor: divider }]} />
+              <Pressable onPress={() => router.push('/(tabs)/publish')} style={styles.actionBtn}>
+                <View style={[styles.actionIcon, { backgroundColor: chipBg }]}>
+                  <MaterialIcons name="event-available" size={18} color={ACCENT} />
+                </View>
+                <ThemedText style={[styles.actionLabel, { color: theme.text }]} numberOfLines={2}>
+                  Créer un événement
+                </ThemedText>
+              </Pressable>
+            </>
+          ) : null}
         </View>
 
         <Pressable
@@ -163,27 +180,30 @@ const styles = StyleSheet.create({
   sectionKicker: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6 },
   sectionHint: { fontSize: 13, lineHeight: 18, marginBottom: 6 },
   contactList: { gap: 10 },
-  menu: {
+  actionRow: {
+    flexDirection: 'row',
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
     marginBottom: 14,
   },
-  menuRow: {
-    flexDirection: 'row',
+  actionBtn: {
+    flex: 1,
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 16,
   },
-  menuIcon: {
-    width: 34,
-    height: 34,
+  actionIcon: {
+    width: 36,
+    height: 36,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuLabel: { flex: 1, fontSize: 15, fontWeight: '600' },
+  actionLabel: { fontSize: 13, fontWeight: '600', textAlign: 'center', lineHeight: 18 },
+  actionDivider: { width: StyleSheet.hairlineWidth, marginVertical: 12 },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
