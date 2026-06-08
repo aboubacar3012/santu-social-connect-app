@@ -1,4 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Image } from 'expo-image';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
@@ -14,29 +15,142 @@ type Sector = 'Tech' | 'Commerce' | 'Services' | 'Immobilier' | 'Santé' | 'Cult
 
 type Member = {
   id: string;
-  name: string;
-  role: string;
-  company: string;
-  sector: Sector;
+  firstName: string;
+  lastName: string;
+  avatar: string;
+  jobTitle: string;
+  company?: string;
   quartier: string;
-  initials: string;
 };
 
 const MOCK_MEMBERS: Member[] = [
-  { id: '1', name: 'Léa Martin', role: 'Fondatrice', company: 'Marseille Labs', sector: 'Tech', quartier: 'Joliette', initials: 'LM' },
-  { id: '2', name: 'Karim Benali', role: 'CEO', company: 'Azur Retail', sector: 'Commerce', quartier: 'Prado', initials: 'KB' },
-  { id: '3', name: 'Sophie Durand', role: 'Consultante', company: 'Sud Conseil', sector: 'Services', quartier: 'Euroméditerranée', initials: 'SD' },
-  { id: '4', name: 'Thomas Roux', role: 'Agent immobilier', company: 'Phocéa Home', sector: 'Immobilier', quartier: 'Vieux-Port', initials: 'TR' },
-  { id: '5', name: 'Nadia El Amrani', role: 'Kinésithérapeute', company: 'Cabinet Santé Sud', sector: 'Santé', quartier: 'Cours Julien', initials: 'NE' },
-  { id: '6', name: 'Julien Moreau', role: 'Producteur', company: 'Méditerranée Créative', sector: 'Culture', quartier: 'Panier', initials: 'JM' },
-  { id: '7', name: 'Amina Diallo', role: 'CTO', company: 'Harbor Tech', sector: 'Tech', quartier: 'Joliette', initials: 'AD' },
-  { id: '8', name: 'Marc Lefèvre', role: 'Gérant', company: 'Provence BTP', sector: 'Services', quartier: 'Saint-Barnabé', initials: 'ML' },
+  {
+    id: '1',
+    firstName: 'Léa',
+    lastName: 'Martin',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&q=80',
+    jobTitle: 'Fondatrice',
+    company: 'Marseille Labs',
+    quartier: 'Joliette',
+  },
+  {
+    id: '2',
+    firstName: 'Karim',
+    lastName: 'Benali',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
+    jobTitle: 'CEO',
+    company: 'Azur Retail',
+    quartier: 'Prado',
+  },
+  {
+    id: '3',
+    firstName: 'Sophie',
+    lastName: 'Durand',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&q=80',
+    jobTitle: 'Consultante indépendante',
+    quartier: 'Euroméditerranée',
+  },
+  {
+    id: '4',
+    firstName: 'Thomas',
+    lastName: 'Roux',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80',
+    jobTitle: 'Agent immobilier',
+    company: 'Phocéa Home',
+    quartier: 'Vieux-Port',
+  },
+  {
+    id: '5',
+    firstName: 'Nadia',
+    lastName: 'El Amrani',
+    avatar: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=200&q=80',
+    jobTitle: 'Kinésithérapeute',
+    company: 'Cabinet Santé Sud',
+    quartier: 'Cours Julien',
+  },
+  {
+    id: '6',
+    firstName: 'Julien',
+    lastName: 'Moreau',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80',
+    jobTitle: 'Producteur',
+    company: 'Méditerranée Créative',
+    quartier: 'Panier',
+  },
+  {
+    id: '7',
+    firstName: 'Amina',
+    lastName: 'Diallo',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80',
+    jobTitle: 'CTO',
+    company: 'Harbor Tech',
+    quartier: 'Joliette',
+  },
+  {
+    id: '8',
+    firstName: 'Marc',
+    lastName: 'Lefèvre',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&q=80',
+    jobTitle: 'Gérant',
+    company: 'Provence BTP',
+    quartier: 'Saint-Barnabé',
+  },
 ];
 
-const SECTOR_FILTERS: Array<Sector | 'Tous'> = ['Tous', 'Tech', 'Commerce', 'Services', 'Immobilier', 'Santé', 'Culture'];
+const SECTOR_FILTERS: (Sector | 'Tous')[] = ['Tous', 'Tech', 'Commerce', 'Services', 'Immobilier', 'Santé', 'Culture'];
 
 function normalize(s: string): string {
   return s.trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+}
+
+type MemberCardProps = {
+  member: Member;
+  cardBg: string;
+  chipBg: string;
+  divider: string;
+  textColor: string;
+  mutedColor: string;
+};
+
+function MemberCard({ member, cardBg, chipBg, divider, textColor, mutedColor }: MemberCardProps) {
+  return (
+    <Pressable style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
+      <View style={[styles.avatarWrap, { borderColor: divider }]}>
+        <Image source={{ uri: member.avatar }} style={styles.avatar} contentFit="cover" />
+      </View>
+
+      <View style={styles.nameBlock}>
+        <ThemedText style={[styles.firstName, { color: textColor }]} numberOfLines={1}>
+          {member.firstName}
+        </ThemedText>
+        <ThemedText style={[styles.lastName, { color: textColor }]} numberOfLines={1}>
+          {member.lastName}
+        </ThemedText>
+      </View>
+
+      <ThemedText style={[styles.jobTitle, { color: ACCENT }]} numberOfLines={2}>
+        {member.jobTitle}
+      </ThemedText>
+
+      {member.company ? (
+        <View style={styles.companyRow}>
+          <MaterialIcons name="business" size={12} color={mutedColor} />
+          <ThemedText style={[styles.company, { color: mutedColor }]} numberOfLines={1}>
+            {member.company}
+          </ThemedText>
+        </View>
+      ) : (
+        <View style={styles.companyPlaceholder} />
+      )}
+
+      <View style={styles.locationRow}>
+        <MaterialIcons name="place" size={12} color={ACCENT} />
+        <ThemedText style={[styles.locationText, { color: mutedColor }]} numberOfLines={1}>
+          {member.quartier}
+        </ThemedText>
+      </View>
+    </Pressable>
+  );
 }
 
 export default function AnnuaireScreen() {
@@ -56,12 +170,13 @@ export default function AnnuaireScreen() {
   const members = useMemo(() => {
     const q = normalize(query);
     return MOCK_MEMBERS.filter((m) => {
-      if (sectorFilter !== 'Tous' && m.sector !== sectorFilter) return false;
       if (!q) return true;
-      const haystack = normalize(`${m.name} ${m.company} ${m.role} ${m.quartier}`);
+      const haystack = normalize(
+        `${m.firstName} ${m.lastName} ${m.company ?? ''} ${m.jobTitle} ${m.quartier}`
+      );
       return haystack.includes(q);
     });
-  }, [query, sectorFilter]);
+  }, [query]);
 
   return (
     <SafeScrollView screenBackgroundColor={pageBg} keyboardAvoiding>
@@ -119,32 +234,15 @@ export default function AnnuaireScreen() {
 
       <View style={styles.list}>
         {members.map((member) => (
-          <Pressable
+          <MemberCard
             key={member.id}
-            style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}
-          >
-            <View style={[styles.avatar, { backgroundColor: `${ACCENT}22` }]}>
-              <ThemedText style={[styles.avatarText, { color: ACCENT }]}>{member.initials}</ThemedText>
-            </View>
-
-            <View style={styles.cardBody}>
-              <ThemedText style={[styles.name, { color: theme.text }]}>{member.name}</ThemedText>
-              <ThemedText style={[styles.role, { color: theme.icon }]}>
-                {member.role} · {member.company}
-              </ThemedText>
-              <View style={styles.tags}>
-                <View style={[styles.tag, { backgroundColor: chipBg }]}>
-                  <ThemedText style={[styles.tagText, { color: theme.text }]}>{member.sector}</ThemedText>
-                </View>
-                <View style={styles.metaItem}>
-                  <MaterialIcons name="place" size={13} color={ACCENT} />
-                  <ThemedText style={[styles.metaText, { color: theme.icon }]}>{member.quartier}</ThemedText>
-                </View>
-              </View>
-            </View>
-
-            <MaterialIcons name="chevron-right" size={22} color={theme.icon} />
-          </Pressable>
+            member={member}
+            cardBg={cardBg}
+            chipBg={chipBg}
+            divider={divider}
+            textColor={theme.text}
+            mutedColor={theme.icon}
+          />
         ))}
       </View>
 
@@ -173,30 +271,44 @@ const styles = StyleSheet.create({
   sectorChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18 },
   sectorChipText: { fontSize: 13, fontWeight: '600' },
   resultCount: { fontSize: 12, fontWeight: '600', marginBottom: 10, letterSpacing: 0.2 },
-  list: { gap: 10 },
-  card: {
+  list: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  card: {
+    width: '48%',
+    flexGrow: 0,
+    flexShrink: 0,
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 14,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    padding: 12,
+    gap: 6,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  avatarText: { fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
-  cardBody: { flex: 1, gap: 3 },
-  name: { fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
-  role: { fontSize: 13, fontWeight: '500' },
-  tags: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' },
-  tag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  tagText: { fontSize: 11, fontWeight: '700' },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { fontSize: 12, fontWeight: '500' },
+  avatarWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  avatar: { width: '100%', height: '100%' },
+  nameBlock: { alignItems: 'center', width: '100%' },
+  firstName: { fontSize: 12, fontWeight: '500', lineHeight: 15 },
+  lastName: { fontSize: 15, fontWeight: '800', letterSpacing: -0.3, lineHeight: 18, textAlign: 'center' },
+  jobTitle: { fontSize: 12, fontWeight: '700', textAlign: 'center', minHeight: 32 },
+  companyRow: { flexDirection: 'row', alignItems: 'center', gap: 4, width: '100%' },
+  company: { flex: 1, fontSize: 11, fontWeight: '500' },
+  companyPlaceholder: { height: 16 },
+  memberSectorChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    maxWidth: '100%',
+  },
+  memberSectorChipText: { fontSize: 10, fontWeight: '700', textAlign: 'center' },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, maxWidth: '100%' },
+  locationText: { flex: 1, fontSize: 11, fontWeight: '500' },
   tabBarSpacer: { height: 96 },
 });

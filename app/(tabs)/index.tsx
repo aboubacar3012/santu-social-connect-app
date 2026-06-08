@@ -1,8 +1,8 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Image } from 'expo-image';
 import React, { useMemo, useState } from 'react';
-import { Linking, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
+import { EventCard } from '@/components/events/event-card';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
@@ -11,12 +11,15 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 const ACCENT = '#0077B6';
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
 
-type EventType = 'Afterwork' | 'Conference' | 'Networking' | 'Workshop' | "Concert" | "Exposition" | "Sortie" | "Autre";
-type DateFilter = 'upcoming' | 'this_week' | 'this_month' | 'past';
-type DateSort = 'soonest' | 'recent';
-type SelectKey = 'type' | 'date' | null;
-
-type SelectOption<T extends string> = { value: T; label: string };
+type EventType =
+  | 'Afterwork'
+  | 'Conference'
+  | 'Networking'
+  | 'Workshop'
+  | 'Concert'
+  | 'Exposition'
+  | 'Sortie'
+  | 'Autre';
 
 type EventLink = {
   label: string;
@@ -47,10 +50,27 @@ const MONTH_LABELS = [
   'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
 ] as const;
 
+const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  Afterwork: 'Afterwork',
+  Conference: 'Conférence',
+  Networking: 'Networking',
+  Workshop: 'Atelier',
+  Concert: 'Concert',
+  Exposition: 'Exposition',
+  Sortie: 'Sortie',
+  Autre: 'Autre',
+};
+
 function formatEventDate(date: EventDate): string {
   const month = MONTH_LABELS[date.month - 1] ?? '';
   return `${date.day} ${month} ${date.year}`;
 }
+
+type DateFilter = 'upcoming' | 'this_week' | 'this_month' | 'past';
+type DateSort = 'soonest' | 'recent';
+type SelectKey = 'type' | 'date' | null;
+
+type SelectOption<T extends string> = { value: T; label: string };
 
 function buildStartsAt(date: EventDate, time: string): number {
   const [hours, minutes] = time.split(':').map(Number);
@@ -169,17 +189,6 @@ const DATE_OPTIONS: SelectOption<DateFilter>[] = [
   { value: 'this_month', label: 'Ce mois' },
   { value: 'past', label: 'Passés' },
 ];
-
-const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  Afterwork: 'Afterwork',
-  Conference: 'Conférence',
-  Networking: 'Networking',
-  Workshop: 'Atelier',
-  Concert: 'Concert',
-  Exposition: 'Exposition',
-  Sortie: 'Sortie',
-  Autre: 'Autre',
-};
 
 type FilterSelectProps<T extends string> = {
   label: string;
@@ -320,7 +329,6 @@ export default function EventsScreen() {
 
   const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
   const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
   const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
   const [typeFilter, setTypeFilter] = useState<EventType | 'All'>('All');
@@ -366,10 +374,9 @@ export default function EventsScreen() {
   return (
     <SafeScrollView screenBackgroundColor={pageBg}>
       <View style={styles.header}>
-        <ThemedText style={[styles.kicker, { color: theme.icon }]}>MARSEILLE</ThemedText>
         <ThemedText style={[styles.title, { color: theme.text }]}>Événements</ThemedText>
         <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-          Afterworks, conférences et rencontres entre entrepreneurs.
+          Retrouvez les événements pour vous connecter avec d&apos;autres entrepreneurs
         </ThemedText>
       </View>
 
@@ -449,81 +456,22 @@ export default function EventsScreen() {
             </ThemedText>
           </View>
         ) : (
-          events.map((event) => {
-            const isFavorite = favoriteIds.has(event.id);
-            const isPast = event.startsAt < new Date().setHours(0, 0, 0, 0);
-
-            return (
-              <Pressable
-                key={event.id}
-                style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}
-              >
-                <View style={styles.cardImageWrap}>
-                  <Image source={{ uri: event.image }} style={styles.cardImage} contentFit="cover" />
-                  <View style={styles.cardImageOverlay}>
-                    <View style={[styles.typeBadge, { backgroundColor: 'rgba(255,255,255,0.92)' }]}>
-                      <ThemedText style={[styles.typeBadgeText, { color: ACCENT }]}>
-                        {EVENT_TYPE_LABELS[event.type]}
-                      </ThemedText>
-                    </View>
-                    <Pressable
-                      onPress={() => toggleFavorite(event.id)}
-                      hitSlop={12}
-                      style={[styles.favOnImage, { backgroundColor: 'rgba(255,255,255,0.92)' }]}
-                    >
-                      <MaterialIcons
-                        name={isFavorite ? 'favorite' : 'favorite-border'}
-                        size={20}
-                        color={isFavorite ? ACCENT : theme.icon}
-                      />
-                    </Pressable>
-                  </View>
-                  {isPast ? (
-                    <View style={[styles.pastBanner, { backgroundColor: 'rgba(0,0,0,0.55)' }]}>
-                      <ThemedText style={styles.pastBannerText}>Passé</ThemedText>
-                    </View>
-                  ) : null}
-                </View>
-
-                <View style={styles.cardBody}>
-                  <ThemedText style={[styles.cardTitle, { color: theme.text }]}>{event.title}</ThemedText>
-
-                  <View style={styles.metaItem}>
-                    <MaterialIcons name="calendar-today" size={15} color={ACCENT} />
-                    <ThemedText style={[styles.metaText, { color: theme.icon }]}>
-                      {formatEventDate(event.date)} · {event.time}
-                    </ThemedText>
-                  </View>
-
-                  <ThemedText style={[styles.description, { color: theme.icon }]} numberOfLines={3}>
-                    {event.description}
-                  </ThemedText>
-
-                  <View style={styles.metaItem}>
-                    <MaterialIcons name="place" size={15} color={ACCENT} />
-                    <ThemedText style={[styles.address, { color: theme.text }]}>{event.address}</ThemedText>
-                  </View>
-
-                  {event.links.length > 0 ? (
-                    <View style={styles.linksRow}>
-                      {event.links.map((link) => (
-                        <Pressable
-                          key={`${event.id}-${link.url}`}
-                          onPress={() => Linking.openURL(link.url)}
-                          style={[styles.linkChip, { backgroundColor: chipBg, borderColor: divider }]}
-                        >
-                          <MaterialIcons name="link" size={13} color={ACCENT} />
-                          <ThemedText style={[styles.linkChipText, { color: ACCENT }]}>
-                            {link.label}
-                          </ThemedText>
-                        </Pressable>
-                      ))}
-                    </View>
-                  ) : null}
-                </View>
-              </Pressable>
-            );
-          })
+          events.map((event) => (
+            <EventCard
+              key={event.id}
+              title={event.title}
+              typeLabel={EVENT_TYPE_LABELS[event.type]}
+              image={event.image}
+              description={event.description}
+              dateLabel={formatEventDate(event.date)}
+              time={event.time}
+              address={event.address}
+              links={event.links}
+              isFavorite={favoriteIds.has(event.id)}
+              isPast={event.startsAt < new Date().setHours(0, 0, 0, 0)}
+              onToggleFavorite={() => toggleFavorite(event.id)}
+            />
+          ))
         )}
       </View>
 
@@ -533,15 +481,14 @@ export default function EventsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { marginBottom: 16, gap: 4 },
-  kicker: { fontSize: 11, fontWeight: '700', letterSpacing: 2.2 },
+  header: { marginBottom: 2, gap: 4 },
   title: { fontSize: 32, fontWeight: '800', letterSpacing: -1.2, lineHeight: 38 },
   subtitle: { fontSize: 14, lineHeight: 20, marginTop: 4, maxWidth: 320 },
   filtersRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 14,
+    marginBottom: 2,
   },
   selectField: { flex: 1 },
   selectTrigger: {
@@ -592,59 +539,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   selectOptionText: { fontSize: 15 },
-  resultCount: { fontSize: 12, fontWeight: '600', marginBottom: 10, letterSpacing: 0.2 },
+  resultCount: { fontSize: 12, fontWeight: '600', marginBottom: 2, letterSpacing: 0.2 },
   list: { gap: 12 },
-  card: {
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
-  },
-  cardImageWrap: { position: 'relative', height: 168 },
-  cardImage: { width: '100%', height: '100%' },
-  cardImageOverlay: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    right: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  favOnImage: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pastBanner: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 5,
-    alignItems: 'center',
-  },
-  pastBannerText: { color: '#FFF', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-  typeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  typeBadgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
-  cardBody: { padding: 14, gap: 8 },
-  cardTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.3, lineHeight: 22 },
-  metaItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  metaText: { flex: 1, fontSize: 13, fontWeight: '600' },
-  description: { fontSize: 14, lineHeight: 20, fontWeight: '400' },
-  address: { flex: 1, fontSize: 13, fontWeight: '500', lineHeight: 18 },
-  linksRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
-  linkChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  linkChipText: { fontSize: 12, fontWeight: '600' },
   empty: {
     alignItems: 'center',
     justifyContent: 'center',
