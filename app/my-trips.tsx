@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
@@ -15,34 +15,15 @@ const PAGE_BG = { light: '#EBECEF', dark: '#0A0A0C' } as const;
 const SURFACE = { light: '#FFFFFF', dark: '#141416' } as const;
 const MUTED = { light: '#6B7280', dark: '#8B9098' } as const;
 
+const TABS = [
+  { key: 'published', label: 'Mes trajets' },
+  { key: 'reservations', label: 'Mes réservations' },
+] as const;
+
+type TabKey = (typeof TABS)[number]['key'];
+
 function formatPrice(gnf: number) {
   return `${gnf.toLocaleString('fr-FR')} GNF`;
-}
-
-function Section({
-  title,
-  count,
-  children,
-  surface,
-  borderColor,
-  muted,
-}: {
-  title: string;
-  count: number;
-  children: React.ReactNode;
-  surface: string;
-  borderColor: string;
-  muted: string;
-}) {
-  return (
-    <View style={[styles.section, { backgroundColor: surface, borderColor }]}>
-      <ThemedText style={[styles.sectionTitle, { color: muted }]}>
-        {title}
-        {count > 0 ? ` · ${count}` : ''}
-      </ThemedText>
-      <View style={styles.sectionBody}>{children}</View>
-    </View>
-  );
 }
 
 function PublishedRow({
@@ -94,7 +75,7 @@ function PublishedRow({
 }
 
 /**
- * Mes trajets (publiés, réservés, effectués) — écran stack, accessible depuis le profil.
+ * Mes trajets — 2 onglets : trajets publiés, mes réservations (à venir + historique via API).
  */
 export default function MyTripsScreen() {
   const router = useRouter();
@@ -105,7 +86,9 @@ export default function MyTripsScreen() {
   const surface = isDark ? SURFACE.dark : SURFACE.light;
   const muted = isDark ? MUTED.dark : MUTED.light;
   const borderSubtle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const tabLine = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
   const { user } = useAuth();
+  const [tab, setTab] = useState<TabKey>('published');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [publishedTrips, setPublishedTrips] = useState<MyPublishedTripVm[]>([]);
@@ -144,61 +127,78 @@ export default function MyTripsScreen() {
       style={[styles.scrollRoot, { backgroundColor: pageBg }]}
       contentContainerStyle={styles.scrollViewContent}
     >
-      <Section
-        title="Publiés"
-        count={publishedTrips.length}
-        surface={surface}
-        borderColor={borderSubtle}
-        muted={muted}
-      >
-        {loading ? (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator color={theme.tint} />
-            <ThemedText style={[styles.emptyText, { color: muted }]}>Chargement…</ThemedText>
-          </View>
-        ) : null}
-        {!loading && error ? <ThemedText style={[styles.emptyText, { color: muted }]}>{error}</ThemedText> : null}
-        {!loading && !error && publishedTrips.length === 0 ? (
-          <ThemedText style={[styles.emptyText, { color: muted }]}>Aucun trajet publié pour le moment.</ThemedText>
-        ) : null}
-        {!loading &&
-          !error &&
-          publishedTrips.map((trip) => (
-            <PublishedRow
-              key={trip.id}
-              trip={trip}
-              themeText={theme.text}
-              muted={muted}
-              borderSubtle={borderSubtle}
-              tint={theme.tint}
-              onPress={() => goTrip(trip.id)}
-            />
-          ))}
-      </Section>
+      <View style={styles.tabBarWrap}>
+        <View style={styles.tabRow}>
+          {TABS.map(({ key, label }) => {
+            const active = tab === key;
+            return (
+              <Pressable
+                key={key}
+                onPress={() => setTab(key)}
+                style={({ pressed }) => [
+                  styles.tabPress,
+                  {
+                    borderBottomColor: active ? theme.tint : 'transparent',
+                    opacity: pressed ? 0.75 : 1,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    { color: active ? theme.text : muted },
+                    active && styles.tabLabelActive,
+                  ]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <View style={[styles.tabBarLine, { backgroundColor: tabLine }]} />
+      </View>
 
-      <Section
-        title="Réservés"
-        count={0}
-        surface={surface}
-        borderColor={borderSubtle}
-        muted={muted}
-      >
-        <ThemedText style={[styles.emptyText, { color: muted }]}>
-          Bientôt disponible avec l’endpoint dédié côté API.
-        </ThemedText>
-      </Section>
+      <View style={[styles.panel, { backgroundColor: surface, borderColor: borderSubtle }]}>
+        {tab === 'published' && (
+          <>
+            {loading ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator color={theme.tint} />
+                <ThemedText style={[styles.emptyText, { color: muted }]}>Chargement…</ThemedText>
+              </View>
+            ) : null}
+            {!loading && error ? (
+              <ThemedText style={[styles.emptyText, { color: muted }]}>{error}</ThemedText>
+            ) : null}
+            {!loading && !error && publishedTrips.length === 0 ? (
+              <ThemedText style={[styles.emptyText, { color: muted }]}>
+                Aucun trajet publié pour le moment.
+              </ThemedText>
+            ) : null}
+            {!loading &&
+              !error &&
+              publishedTrips.map((trip) => (
+                <PublishedRow
+                  key={trip.id}
+                  trip={trip}
+                  themeText={theme.text}
+                  muted={muted}
+                  borderSubtle={borderSubtle}
+                  tint={theme.tint}
+                  onPress={() => goTrip(trip.id)}
+                />
+              ))}
+          </>
+        )}
 
-      <Section
-        title="Effectués"
-        count={0}
-        surface={surface}
-        borderColor={borderSubtle}
-        muted={muted}
-      >
-        <ThemedText style={[styles.emptyText, { color: muted }]}>
-          Bientôt disponible avec l’endpoint dédié côté API.
-        </ThemedText>
-      </Section>
+        {tab === 'reservations' && (
+          <ThemedText style={[styles.emptyText, { color: muted }]}>
+            Tes réservations à venir et ton historique de trajets réservés s’afficheront ici (bientôt
+            côté API).
+          </ThemedText>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -209,24 +209,38 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 8,
     paddingBottom: 24,
   },
-  section: {
+  tabBarWrap: {
+    marginHorizontal: -20,
+    marginBottom: 16,
+  },
+  tabRow: {
+    flexDirection: 'row',
+  },
+  tabPress: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+  },
+  tabBarLine: {
+    height: StyleSheet.hairlineWidth,
+    width: '100%',
+  },
+  tabLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  tabLabelActive: {
+    fontWeight: '700',
+  },
+  panel: {
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingVertical: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.6,
-    marginBottom: 8,
-  },
-  sectionBody: {
     gap: 6,
   },
   row: {
@@ -242,12 +256,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     gap: 3,
-  },
-  rowTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
   },
   route: {
     fontSize: 14,
@@ -265,19 +273,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     lineHeight: 14,
-  },
-  pill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    flexShrink: 0,
-  },
-  pillText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  doneIcon: {
-    marginTop: 2,
   },
   loadingRow: {
     flexDirection: 'row',

@@ -46,16 +46,33 @@ const TESLA = {
   },
 } as const;
 
-function formatPhoneDisplay(raw: string): string {
-  const cleaned = raw.replace(/[^\d+]/g, '');
-  const hasPlus = cleaned.startsWith('+');
-  const d = cleaned.replace(/\D/g, '').slice(0, 15);
-  if (d.length === 0) return '';
-  // Format léger: +CCC XX XX XX… (sans imposer un pays)
-  const head = d.slice(0, Math.min(3, d.length));
-  const rest = d.slice(3);
-  const pairs = rest.match(/.{1,2}/g) ?? [];
-  return `${hasPlus ? '+' : ''}${[head, ...pairs].join(' ')}`.trim();
+const FR_COUNTRY_CODE = '+33';
+const FR_NATIONAL_LENGTH = 9;
+
+function normalizeFrenchPhone(raw: string): string {
+  let digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('33')) digits = digits.slice(2);
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  digits = digits.slice(0, FR_NATIONAL_LENGTH);
+  return digits ? `${FR_COUNTRY_CODE}${digits}` : '';
+}
+
+function formatFrenchPhoneDisplay(e164: string): string {
+  const national = e164.replace(/^\+33/, '');
+  if (!national) return '';
+  const pairs = national.slice(1).match(/.{1,2}/g) ?? [];
+  return `${FR_COUNTRY_CODE} ${national[0]}${pairs.length ? ` ${pairs.join(' ')}` : ''}`.trim();
+}
+
+function formatFrenchNationalInput(e164: string): string {
+  const national = e164.replace(/^\+33/, '');
+  if (!national) return '';
+  const pairs = national.slice(1).match(/.{1,2}/g) ?? [];
+  return [national[0], ...pairs].join(' ');
+}
+
+function isValidFrenchPhone(e164: string): boolean {
+  return /^\+33[1-9]\d{8}$/.test(e164);
 }
 export default function AuthScreen() {
   const colorScheme = useColorScheme();
@@ -90,16 +107,15 @@ export default function AuthScreen() {
     throw new Error('EXPO_PUBLIC_API_URL is not set');
   }
 
-  const phoneOk = useMemo(() => {
-    return /^\+\d{10,15}$/.test(phoneE164);
-  }, [phoneE164]);
+  const phoneOk = useMemo(() => isValidFrenchPhone(phoneE164), [phoneE164]);
 
   const otpOk = useMemo(() => /^\d{6,8}$/.test(otpCode), [otpCode]);
 
   const canContinuePhone = phoneOk && !isRequestingOtp;
   const canSubmitOtp = otpOk && !isVerifyingOtp;
 
-  const phoneDisplay = useMemo(() => formatPhoneDisplay(phoneE164), [phoneE164]);
+  const phoneDisplay = useMemo(() => formatFrenchPhoneDisplay(phoneE164), [phoneE164]);
+  const phoneNationalInput = useMemo(() => formatFrenchNationalInput(phoneE164), [phoneE164]);
 
   // Ici on demande un OTP au backend pour la validation du numéro de téléphone
   const onContinuePhone = useCallback(async () => {
@@ -206,28 +222,26 @@ export default function AuthScreen() {
           >
             {step === 'phone' && (
               <>
-                <ThemedText style={[styles.fieldLabel, { color: subtleText }]}>NUMÉRO DE TÉLÉPHONE</ThemedText>
+                <ThemedText style={[styles.fieldLabel, { color: subtleText }]}>NUMÉRO FRANÇAIS</ThemedText>
                 <View style={[styles.inputShell, { backgroundColor: fieldBg, borderColor: fieldBorder }]}>
                   <MaterialIcons name="phone-iphone" size={22} color={subtleText} style={styles.inputIcon} />
+                  <ThemedText style={[styles.countryPrefix, { color: t.ink }]}>{FR_COUNTRY_CODE}</ThemedText>
+                  <View style={[styles.prefixDivider, { backgroundColor: fieldBorder }]} />
                   <TextInput
-                    value={phoneDisplay}
+                    value={phoneNationalInput}
                     onChangeText={(txt) => {
-                      const cleaned = txt.replace(/[^\d+]/g, '');
-                      const normalized = cleaned.startsWith('+')
-                        ? `+${cleaned.slice(1).replace(/\D/g, '').slice(0, 15)}`
-                        : `+${cleaned.replace(/\D/g, '').slice(0, 15)}`;
-                      setPhoneE164(normalized);
+                      setPhoneE164(normalizeFrenchPhone(txt));
                       setAuthError(null);
                     }}
-                    placeholder="+224628000000"
+                    placeholder="6 12 34 56 78"
                     placeholderTextColor={subtleText}
                     keyboardType="phone-pad"
                     style={[styles.input, { color: t.ink }]}
                     autoComplete="tel"
                     textContentType="telephoneNumber"
+                    maxLength={14}
                   />
                 </View>
-
                 <Pressable
                   onPress={onContinuePhone}
                   disabled={!canContinuePhone}
@@ -410,6 +424,24 @@ const styles = StyleSheet.create({
   inputIcon: {
     marginRight: 10,
     opacity: 0.85,
+  },
+  countryPrefix: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    marginRight: 10,
+  },
+  prefixDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    marginVertical: 12,
+    marginRight: 12,
+  },
+  hintText: {
+    fontSize: 12,
+    lineHeight: 17,
+    letterSpacing: 0.1,
+    marginTop: -8,
   },
   input: {
     flex: 1,

@@ -13,25 +13,24 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { ThemedText } from '@/components/shared/themed-text';
 
-const ACCENT = '#E6A800';
+const ACCENT = '#0077B6';
 
 const STEPS = [
   {
-    label: 'Trajets',
-    title: 'Trouvez\nun trajet.',
-    body: 'Des départs chaque jour entre les villes de Guinée. Choisissez votre horaire et votre budget.',
+    label: 'Marseille',
+    title: 'Le réseau\ndes entrepreneurs.',
+    body: 'Rejoignez une communauté d\'entrepreneurs marseillais. Échangez, inspirez-vous et grandissez ensemble.',
   },
   {
-    label: 'Confiance',
-    title: 'Voyagez\nen confiance.',
-    body: 'Conducteurs vérifiés, profils transparents et une communauté bienveillante.',
+    label: 'Connexions',
+    title: 'Trouvez\nvos alliés.',
+    body: 'Découvrez des profils complémentaires au vôtre : fondateurs, investisseurs, mentors et talents locaux.',
   },
   {
-    label: 'Réservation',
-    title: 'Partez\nen un clic.',
-    body: 'Connectez-vous et réservez votre place en quelques secondes.',
+    label: 'Opportunités',
+    title: 'Faites avancer\nvos projets.',
+    body: 'Afterworks, événements et rencontres sur la cité phocéenne. Votre prochaine collaboration est à portée de main.',
   },
 ] as const;
 
@@ -190,7 +189,7 @@ export default function WelcomeScreen() {
           {/* Bouton principal */}
           {isLast ? (
             <Pressable style={[s.btn, { backgroundColor: ACCENT }]} onPress={next}>
-              <Animated.Text style={s.btnText}>Commencer</Animated.Text>
+              <Animated.Text style={s.btnText}>Rejoindre le réseau</Animated.Text>
             </Pressable>
           ) : (
             <Pressable style={[s.btn, { backgroundColor: ACCENT }]} onPress={next}>

@@ -48,7 +48,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="my-trips"
           options={{
-            title: 'Mes trajets',
+            title: 'Trajets',
             headerBackTitle: 'Retour',
             headerShadowVisible: false,
             headerStyle: {
