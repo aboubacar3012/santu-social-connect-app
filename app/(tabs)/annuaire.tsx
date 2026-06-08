@@ -1,16 +1,21 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { MemberCard } from '@/components/annuaire/member-card';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
-import { MOCK_MEMBERS, type Member } from '@/constants/mock-members';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { resolveProfileImageUri } from '@/libs/profile';
+import { listMembersApi } from '@/services/member-list.service';
+import type { Member } from '@/types/member';
 
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const ACCENT = '#0077B6';
+const DEFAULT_AVATAR =
+  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80';
 
 function normalize(s: string): string {
   return s.trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
@@ -28,6 +33,10 @@ function splitColumns(members: Member[]): { left: Member[]; right: Member[] } {
   return { left, right };
 }
 
+function memberAvatarUri(avatar: string): string {
+  return resolveProfileImageUri(avatar) ?? DEFAULT_AVATAR;
+}
+
 export default function AnnuaireScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -40,17 +49,41 @@ export default function AnnuaireScreen() {
   const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
   const [query, setQuery] = useState('');
+  const [allMembers, setAllMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMembers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { members } = await listMembersApi();
+      setAllMembers(members);
+    } catch (err: unknown) {
+      setAllMembers([]);
+      setError(err instanceof Error ? err.message : 'Impossible de charger l’annuaire.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchMembers();
+    }, [fetchMembers]),
+  );
 
   const members = useMemo(() => {
     const q = normalize(query);
-    return MOCK_MEMBERS.filter((m) => {
+    return allMembers.filter((m) => {
       if (!q) return true;
       const haystack = normalize(
-        `${m.firstName} ${m.lastName} ${m.company ?? ''} ${m.jobTitle} ${m.quartier} ${m.city}`
+        `${m.firstName} ${m.lastName} ${m.company ?? ''} ${m.jobTitle} ${m.quartier} ${m.city}`,
       );
       return haystack.includes(q);
     });
-  }, [query]);
+  }, [allMembers, query]);
 
   const { left, right } = useMemo(() => splitColumns(members), [members]);
 
@@ -87,15 +120,33 @@ export default function AnnuaireScreen() {
         ) : null}
       </View>
 
+      {error ? (
+        <View style={[styles.banner, { backgroundColor: cardBg, borderColor: divider }]}>
+          <MaterialIcons name="error-outline" size={18} color="#E82127" />
+          <ThemedText style={[styles.bannerText, { color: theme.text }]}>{error}</ThemedText>
+          <Pressable onPress={() => void fetchMembers()}>
+            <ThemedText style={[styles.retryText, { color: ACCENT }]}>Réessayer</ThemedText>
+          </Pressable>
+        </View>
+      ) : null}
+
       <ThemedText style={[styles.resultCount, { color: theme.icon }]}>
-        {members.length} entrepreneur{members.length > 1 ? 's' : ''}
+        {loading
+          ? 'Chargement…'
+          : `${members.length} entrepreneur${members.length > 1 ? 's' : ''}`}
       </ThemedText>
 
-      {members.length === 0 ? (
+      {loading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={ACCENT} />
+        </View>
+      ) : members.length === 0 ? (
         <View style={[styles.empty, { backgroundColor: cardBg, borderColor: divider }]}>
           <MaterialIcons name="person-search" size={32} color={theme.icon} />
           <ThemedText style={[styles.emptyText, { color: theme.icon }]}>
-            Aucun profil trouvé.
+            {allMembers.length === 0 && !query
+              ? 'Aucun membre visible dans l’annuaire pour le moment.'
+              : 'Aucun profil trouvé.'}
           </ThemedText>
         </View>
       ) : (
@@ -106,10 +157,10 @@ export default function AnnuaireScreen() {
                 key={member.id}
                 firstName={member.firstName}
                 lastName={member.lastName}
-                avatar={member.avatar}
+                avatar={memberAvatarUri(member.avatar)}
                 jobTitle={member.jobTitle}
                 company={member.company}
-                quartier={member.quartier}
+                quartier={member.quartier || member.city}
                 onPress={() => openMember(member.id)}
               />
             ))}
@@ -120,10 +171,10 @@ export default function AnnuaireScreen() {
                 key={member.id}
                 firstName={member.firstName}
                 lastName={member.lastName}
-                avatar={member.avatar}
+                avatar={memberAvatarUri(member.avatar)}
                 jobTitle={member.jobTitle}
                 company={member.company}
-                quartier={member.quartier}
+                quartier={member.quartier || member.city}
                 onPress={() => openMember(member.id)}
               />
             ))}
@@ -152,6 +203,22 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   searchInput: { flex: 1, fontSize: 15, fontWeight: '500', paddingVertical: 10 },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 8,
+  },
+  bannerText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  retryText: { fontSize: 13, fontWeight: '700' },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
   resultCount: { fontSize: 12, fontWeight: '600', marginBottom: 12, letterSpacing: 0.2 },
   masonry: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   column: { flex: 1, gap: 12 },
@@ -163,6 +230,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  emptyText: { fontSize: 14, fontWeight: '500' },
+  emptyText: { fontSize: 14, fontWeight: '500', textAlign: 'center', maxWidth: 280 },
   tabBarSpacer: { height: 96 },
 });

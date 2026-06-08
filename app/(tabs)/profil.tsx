@@ -1,8 +1,9 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 
+import { ProfileAccountSection } from '@/components/profile/profile-account-section';
 import { ProfileCard } from '@/components/profile/profile-card';
 import { ProfileContactCard } from '@/components/profile/profile-contact-card';
 import { ProfileFormData, UpdateProfil } from '@/components/profile/update-profil';
@@ -12,19 +13,35 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isUserAdmin } from '@/libs/auth';
+import {
+  isProfileVerified,
+  meToProfileFormData,
+  profileFormToUpdatePayload,
+} from '@/libs/profile-form';
+import { USER_ROLE_LABELS, type UserRoleApi } from '@/libs/profile-status';
+import { getProfileInitials } from '@/services/profil-view.service';
+import {
+  getMeApi,
+  updateProfileApi,
+  updateProfileWithAvatarApi,
+} from '@/services/profile.service';
+import type { MeApiUser } from '@/types/profile';
 
 const ACCENT = '#0077B6';
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
 
-const DEFAULT_PROFILE: ProfileFormData & { verified: boolean } = {
-  name: 'Aboubacar',
-  jobTitle: 'Fondateur',
-  company: 'Santu Connect',
-  city: 'Marseille',
-  bio: 'Je connecte les entrepreneurs marseillais pour créer des opportunités et faire grandir l’écosystème local.',
-  email: 'aboubacar@connect.santu.io',
+const EMPTY_PROFILE: ProfileFormData = {
+  name: '',
+  jobTitle: '',
+  company: '',
+  city: '',
+  quartier: '',
+  bio: '',
+  email: '',
   avatarUri: null,
-  verified: true,
+  directoryVisible: false,
+  showEmailInDirectory: false,
+  showPhoneInDirectory: false,
 };
 
 function formatPhoneE164(e164: string): string {
@@ -40,38 +57,157 @@ export default function ProfilScreen() {
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
   const router = useRouter();
-  const { signOut, user } = useAuth();
+  const { signOut, user, token, isReady } = useAuth();
 
-  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [me, setMe] = useState<MeApiUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showPhonePublic, setShowPhonePublic] = useState(false);
-  const [showEmailPublic, setShowEmailPublic] = useState(true);
+  const [showEmailPublic, setShowEmailPublic] = useState(false);
+  const [directoryVisible, setDirectoryVisible] = useState(false);
 
   const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
   const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
   const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
   const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
-  const email = user?.email?.trim() || profile.email;
-  const phone = user?.phoneE164 ? formatPhoneE164(user.phoneE164) : '+33 6 12 34 56 78';
-  const isAdmin = isUserAdmin(user);
+  const applyMe = useCallback((next: MeApiUser) => {
+    setMe(next);
+    setShowEmailPublic(Boolean(next.showEmailInDirectory));
+    setShowPhonePublic(Boolean(next.showPhoneInDirectory));
+    setDirectoryVisible(Boolean(next.directoryVisible));
+  }, []);
 
-  const editInitial = useMemo<ProfileFormData>(
-    () => ({
-      name: profile.name,
-      jobTitle: profile.jobTitle,
-      company: profile.company,
-      city: profile.city,
-      bio: profile.bio,
-      email,
-      avatarUri: profile.avatarUri,
-    }),
-    [profile, email],
+  const fetchProfile = useCallback(async () => {
+    if (!isReady) return;
+
+    if (!token) {
+      setMe(null);
+      setLoading(false);
+      setError('Session expirée. Reconnectez-vous.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { user: profile } = await getMeApi(token);
+      applyMe(profile);
+    } catch (err: unknown) {
+      setMe(null);
+      setError(err instanceof Error ? err.message : 'Impossible de charger le profil.');
+    } finally {
+      setLoading(false);
+    }
+  }, [applyMe, isReady, token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchProfile();
+    }, [fetchProfile]),
   );
 
+  const profile = useMemo(
+    () => (me ? meToProfileFormData(me) : EMPTY_PROFILE),
+    [me],
+  );
+
+  const phone = me?.phoneE164
+    ? formatPhoneE164(me.phoneE164)
+    : user?.phoneE164
+      ? formatPhoneE164(user.phoneE164)
+      : '—';
+
+  const email = profile.email || user?.email?.trim() || '—';
+  const isAdmin = isUserAdmin(user);
+  const isVerified = me ? isProfileVerified(me) : false;
+  const subscriptionLabel = me
+    ? (USER_ROLE_LABELS[(me.role ?? 'freemium') as UserRoleApi] ?? me.role)
+    : undefined;
+  const avatarInitial = me
+    ? getProfileInitials(me)
+    : profile.name.charAt(0).toUpperCase() || '?';
+
+  const editInitial = useMemo<ProfileFormData>(() => profile, [profile]);
+
   const handleSaveProfile = async (data: ProfileFormData) => {
-    setProfile((prev) => ({ ...prev, ...data }));
-    setIsEditing(false);
+    if (!token) {
+      Alert.alert('Session expirée', 'Reconnectez-vous pour modifier votre profil.');
+      return;
+    }
+
+    try {
+      const payload = profileFormToUpdatePayload(data);
+      const { user: updated } = await updateProfileWithAvatarApi(
+        token,
+        payload,
+        data.avatarUri,
+      );
+      applyMe(updated);
+      setIsEditing(false);
+    } catch (err: unknown) {
+      Alert.alert(
+        'Enregistrement',
+        err instanceof Error ? err.message : 'Impossible de mettre à jour le profil.',
+      );
+      throw err;
+    }
+  };
+
+  const handleToggleEmailPublic = async (next: boolean) => {
+    setShowEmailPublic(next);
+    if (!token) return;
+
+    try {
+      const { user: updated } = await updateProfileApi(token, {
+        showEmailInDirectory: next,
+      });
+      applyMe(updated);
+    } catch (err: unknown) {
+      setShowEmailPublic(!next);
+      Alert.alert(
+        'Visibilité e-mail',
+        err instanceof Error ? err.message : 'Mise à jour impossible.',
+      );
+    }
+  };
+
+  const handleTogglePhonePublic = async (next: boolean) => {
+    setShowPhonePublic(next);
+    if (!token) return;
+
+    try {
+      const { user: updated } = await updateProfileApi(token, {
+        showPhoneInDirectory: next,
+      });
+      applyMe(updated);
+    } catch (err: unknown) {
+      setShowPhonePublic(!next);
+      Alert.alert(
+        'Visibilité téléphone',
+        err instanceof Error ? err.message : 'Mise à jour impossible.',
+      );
+    }
+  };
+
+  const handleToggleDirectoryVisible = async (next: boolean) => {
+    setDirectoryVisible(next);
+    if (!token) return;
+
+    try {
+      const { user: updated } = await updateProfileApi(token, {
+        directoryVisible: next,
+      });
+      applyMe(updated);
+    } catch (err: unknown) {
+      setDirectoryVisible(!next);
+      Alert.alert(
+        'Visibilité annuaire',
+        err instanceof Error ? err.message : 'Mise à jour impossible.',
+      );
+    }
   };
 
   const handleLogout = async () => {
@@ -87,45 +223,81 @@ export default function ProfilScreen() {
           <ThemedText style={[styles.title, { color: theme.text }]}>Mon profil</ThemedText>
         </View>
 
-        <View style={styles.profileCardWrap}>
-          <ProfileCard
-            name={profile.name}
-            avatarInitial={profile.name.charAt(0).toUpperCase()}
-            avatarUri={profile.avatarUri}
-            jobTitle={profile.jobTitle}
-            company={profile.company}
-            city={profile.city}
-            bio={profile.bio}
-            isVerified={profile.verified}
-          />
-        </View>
-
-        <View style={styles.sectionBlock}>
-          <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>COORDONNÉES</ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: theme.icon }]}>
-            Gérez ce que les autres entrepreneurs peuvent voir.
-          </ThemedText>
-
-          <View style={styles.contactList}>
-            <ProfileContactCard
-              icon="email"
-              label="E-mail"
-              value={email}
-              isPublic={showEmailPublic}
-              onTogglePublic={setShowEmailPublic}
-            />
-            <ProfileContactCard
-              icon="phone"
-              label="Téléphone"
-              value={phone}
-              isPublic={showPhonePublic}
-              onTogglePublic={setShowPhonePublic}
-            />
+        {error ? (
+          <View style={[styles.banner, { backgroundColor: cardBg, borderColor: divider }]}>
+            <MaterialIcons name="error-outline" size={18} color="#E82127" />
+            <ThemedText style={[styles.bannerText, { color: theme.text }]}>{error}</ThemedText>
+            <Pressable onPress={() => void fetchProfile()}>
+              <ThemedText style={[styles.retryText, { color: ACCENT }]}>Réessayer</ThemedText>
+            </Pressable>
           </View>
-        </View>
+        ) : null}
+
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color={ACCENT} />
+            <ThemedText style={[styles.loadingText, { color: theme.icon }]}>
+              Chargement du profil…
+            </ThemedText>
+          </View>
+        ) : (
+          <>
+            <View style={styles.profileCardWrap}>
+              <ProfileCard
+                name={profile.name || 'Profil'}
+                avatarInitial={avatarInitial}
+                avatarUri={profile.avatarUri}
+                subscriptionLabel={subscriptionLabel}
+                jobTitle={profile.jobTitle}
+                company={profile.company}
+                city={profile.city}
+                bio={profile.bio}
+                isVerified={isVerified}
+              />
+            </View>
+
+            {me ? (
+              <ProfileAccountSection
+                me={me}
+                directoryVisible={directoryVisible}
+                onToggleDirectoryVisible={handleToggleDirectoryVisible}
+              />
+            ) : null}
+
+            <View style={styles.sectionBlock}>
+              <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>
+                COORDONNÉES
+              </ThemedText>
+              <ThemedText style={[styles.sectionHint, { color: theme.icon }]}>
+                Gérez ce que les autres entrepreneurs peuvent voir.
+              </ThemedText>
+
+              <View style={styles.contactList}>
+                <ProfileContactCard
+                  icon="email"
+                  label="E-mail"
+                  value={email}
+                  isPublic={showEmailPublic}
+                  onTogglePublic={handleToggleEmailPublic}
+                />
+                <ProfileContactCard
+                  icon="phone"
+                  label="Téléphone"
+                  value={phone}
+                  isPublic={showPhonePublic}
+                  onTogglePublic={handleTogglePhonePublic}
+                />
+              </View>
+            </View>
+          </>
+        )}
 
         <View style={[styles.actionRow, { backgroundColor: cardBg, borderColor: divider }]}>
-          <Pressable onPress={() => setIsEditing(true)} style={styles.actionBtn}>
+          <Pressable
+            onPress={() => setIsEditing(true)}
+            disabled={loading}
+            style={styles.actionBtn}
+          >
             <View style={[styles.actionIcon, { backgroundColor: chipBg }]}>
               <MaterialIcons name="edit" size={18} color={ACCENT} />
             </View>
@@ -175,6 +347,25 @@ const styles = StyleSheet.create({
   header: { marginBottom: 18, gap: 4 },
   kicker: { fontSize: 11, fontWeight: '700', letterSpacing: 2.2 },
   title: { fontSize: 32, fontWeight: '800', letterSpacing: -1.2, lineHeight: 38 },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 14,
+  },
+  bannerText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  retryText: { fontSize: 13, fontWeight: '700' },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 32,
+    marginBottom: 20,
+  },
+  loadingText: { fontSize: 13, fontWeight: '500' },
   profileCardWrap: { marginBottom: 20 },
   sectionBlock: { marginBottom: 16, gap: 6 },
   sectionKicker: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6 },

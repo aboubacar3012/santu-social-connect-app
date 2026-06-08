@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   TextInput,
   View,
 } from 'react-native';
@@ -27,9 +28,13 @@ export type ProfileFormData = {
   jobTitle: string;
   company: string;
   city: string;
+  quartier: string;
   bio: string;
   email: string;
   avatarUri: string | null;
+  directoryVisible: boolean;
+  showEmailInDirectory: boolean;
+  showPhoneInDirectory: boolean;
 };
 
 export type UpdateProfilProps = {
@@ -55,9 +60,13 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
   const [jobTitle, setJobTitle] = useState(initial.jobTitle);
   const [company, setCompany] = useState(initial.company);
   const [city, setCity] = useState(initial.city);
+  const [quartier, setQuartier] = useState(initial.quartier);
   const [bio, setBio] = useState(initial.bio);
   const [email, setEmail] = useState(initial.email);
   const [avatarUri, setAvatarUri] = useState<string | null>(initial.avatarUri);
+  const [directoryVisible, setDirectoryVisible] = useState(initial.directoryVisible);
+  const [showEmailInDirectory, setShowEmailInDirectory] = useState(initial.showEmailInDirectory);
+  const [showPhoneInDirectory, setShowPhoneInDirectory] = useState(initial.showPhoneInDirectory);
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
@@ -66,9 +75,13 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
     setJobTitle(initial.jobTitle);
     setCompany(initial.company);
     setCity(initial.city);
+    setQuartier(initial.quartier);
     setBio(initial.bio);
     setEmail(initial.email);
     setAvatarUri(initial.avatarUri);
+    setDirectoryVisible(initial.directoryVisible);
+    setShowEmailInDirectory(initial.showEmailInDirectory);
+    setShowPhoneInDirectory(initial.showPhoneInDirectory);
   }, [visible, initial]);
 
   const handleSave = async () => {
@@ -82,9 +95,13 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
         jobTitle: jobTitle.trim(),
         company: company.trim(),
         city: city.trim(),
+        quartier: quartier.trim(),
         bio: bio.trim(),
         email: email.trim(),
         avatarUri,
+        directoryVisible,
+        showEmailInDirectory,
+        showPhoneInDirectory,
       });
     } finally {
       setSaving(false);
@@ -168,15 +185,63 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
               borderColor={divider}
             />
             <IconTextField
-              label="Ville / quartier"
+              label="Ville"
               value={city}
               onChangeText={setCity}
-              placeholder="Ex. Marseille, Joliette…"
+              placeholder="Ex. Marseille"
+              icon="location-city"
+              themeText={theme.text}
+              themeMuted={theme.icon}
+              fieldBg={fieldBg}
+              borderColor={divider}
+            />
+            <IconTextField
+              label="Quartier"
+              value={quartier}
+              onChangeText={setQuartier}
+              placeholder="Ex. Joliette, Vieux-Port…"
               icon="place"
               themeText={theme.text}
               themeMuted={theme.icon}
               fieldBg={fieldBg}
               borderColor={divider}
+            />
+          </View>
+
+          <View style={[styles.section, { backgroundColor: cardBg, borderColor: divider }]}>
+            <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>ANNUAIRE</ThemedText>
+            <ThemedText style={[styles.sectionHint, { color: theme.icon }]}>
+              Contrôlez votre visibilité publique dans le réseau.
+            </ThemedText>
+            <ToggleRow
+              label="Apparaître dans l'annuaire"
+              hint="Votre profil sera listé dans l'annuaire des entrepreneurs."
+              value={directoryVisible}
+              onValueChange={setDirectoryVisible}
+              themeText={theme.text}
+              themeMuted={theme.icon}
+              divider={divider}
+              isDark={isDark}
+            />
+            <ToggleRow
+              label="E-mail visible"
+              hint="Affiche votre e-mail sur votre fiche publique."
+              value={showEmailInDirectory}
+              onValueChange={setShowEmailInDirectory}
+              themeText={theme.text}
+              themeMuted={theme.icon}
+              divider={divider}
+              isDark={isDark}
+            />
+            <ToggleRow
+              label="Téléphone visible"
+              hint="Affiche votre numéro sur votre fiche publique."
+              value={showPhoneInDirectory}
+              onValueChange={setShowPhoneInDirectory}
+              themeText={theme.text}
+              themeMuted={theme.icon}
+              divider={divider}
+              isDark={isDark}
             />
           </View>
 
@@ -231,6 +296,57 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
   );
 }
 
+type ToggleRowProps = {
+  label: string;
+  hint: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+  themeText: string;
+  themeMuted: string;
+  divider: string;
+  isDark: boolean;
+};
+
+function ToggleRow({
+  label,
+  hint,
+  value,
+  onValueChange,
+  themeText,
+  themeMuted,
+  divider,
+  isDark,
+}: ToggleRowProps) {
+  return (
+    <View style={[toggleStyles.row, { borderBottomColor: divider }]}>
+      <View style={toggleStyles.text}>
+        <ThemedText style={[toggleStyles.label, { color: themeText }]}>{label}</ThemedText>
+        <ThemedText style={[toggleStyles.hint, { color: themeMuted }]}>{hint}</ThemedText>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: isDark ? '#3A3A3C' : '#D1D1D6', true: `${ACCENT}88` }}
+        thumbColor={value ? ACCENT : isDark ? '#F4F4F4' : '#FFFFFF'}
+      />
+    </View>
+  );
+}
+
+const toggleStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  text: { flex: 1, gap: 3 },
+  label: { fontSize: 14, fontWeight: '600' },
+  hint: { fontSize: 12, lineHeight: 17, fontWeight: '500' },
+});
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
   toolbar: {
@@ -252,6 +368,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   sectionKicker: { fontSize: 11, fontWeight: '700', letterSpacing: 1.6 },
+  sectionHint: { fontSize: 12, lineHeight: 17, fontWeight: '500' },
   fieldGroup: { gap: 6 },
   fieldLabel: { fontSize: 11, fontWeight: '600', letterSpacing: 0.25 },
   bioInput: {

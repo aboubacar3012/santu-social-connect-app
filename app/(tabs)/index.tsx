@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { EventCard } from '@/components/events/event-card';
 import SafeScrollView from '@/components/shared/scroll-view';
@@ -9,13 +9,13 @@ import { ThemedText } from '@/components/shared/themed-text';
 import {
   EVENT_TYPE_LABELS,
   formatEventDate,
-  MOCK_EVENTS,
   type EventItem,
   type EventType,
 } from '@/constants/mock-events';
 import { Colors } from '@/constants/theme';
 import { useEventFavorites } from '@/contexts/event-favorites-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { listEventsApi } from '@/services/event-list.service';
 
 const ACCENT = '#0077B6';
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
@@ -193,21 +193,48 @@ export default function EventsScreen() {
   const dateSort: DateSort = 'soonest';
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [openSelect, setOpenSelect] = useState<SelectKey>(null);
+  const [allEvents, setAllEvents] = useState<EventItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchEvents = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { events } = await listEventsApi({
+        type: typeFilter === 'All' ? undefined : typeFilter,
+      });
+      setAllEvents(events);
+    } catch (err: unknown) {
+      setAllEvents([]);
+      setError(
+        err instanceof Error ? err.message : 'Impossible de charger les événements.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [typeFilter]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchEvents();
+    }, [fetchEvents]),
+  );
 
   const events = useMemo(() => {
     const now = new Date();
-    let list = MOCK_EVENTS.filter((e) => {
-      if (typeFilter !== 'All' && e.type !== typeFilter) return false;
+    let list = allEvents.filter((e) => {
       if (!matchesDateFilter(e, dateFilter, now)) return false;
       if (favoritesOnly && !isFavorite(e.id)) return false;
       return true;
     });
 
     list.sort((a, b) =>
-      dateSort === 'soonest' ? a.startsAt - b.startsAt : b.startsAt - a.startsAt
+      dateSort === 'soonest' ? a.startsAt - b.startsAt : b.startsAt - a.startsAt,
     );
     return list;
-  }, [typeFilter, dateFilter, dateSort, favoritesOnly, isFavorite]);
+  }, [allEvents, dateFilter, dateSort, favoritesOnly, isFavorite]);
 
   const hasActiveFilters =
     typeFilter !== 'All' || dateFilter !== 'upcoming' || favoritesOnly;
@@ -288,12 +315,28 @@ export default function EventsScreen() {
         ) : null}
       </View>
 
+      {error ? (
+        <View style={[styles.banner, { backgroundColor: cardBg, borderColor: divider }]}>
+          <MaterialIcons name="error-outline" size={18} color="#E82127" />
+          <ThemedText style={[styles.bannerText, { color: theme.text }]}>{error}</ThemedText>
+          <Pressable onPress={() => void fetchEvents()}>
+            <ThemedText style={[styles.retryText, { color: ACCENT }]}>Réessayer</ThemedText>
+          </Pressable>
+        </View>
+      ) : null}
+
       <ThemedText style={[styles.resultCount, { color: theme.icon }]}>
-        {events.length} événement{events.length > 1 ? 's' : ''}
+        {loading
+          ? 'Chargement…'
+          : `${events.length} événement${events.length > 1 ? 's' : ''}`}
       </ThemedText>
 
       <View style={styles.list}>
-        {events.length === 0 ? (
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color={ACCENT} />
+          </View>
+        ) : events.length === 0 ? (
           <View style={[styles.empty, { backgroundColor: cardBg, borderColor: divider }]}>
             <MaterialIcons name="event-busy" size={32} color={theme.icon} />
             <ThemedText style={[styles.emptyText, { color: theme.icon }]}>
@@ -332,6 +375,22 @@ const styles = StyleSheet.create({
   header: { marginBottom: 2, gap: 4 },
   title: { fontSize: 32, fontWeight: '800', letterSpacing: -1.2, lineHeight: 38 },
   subtitle: { fontSize: 14, lineHeight: 20, marginTop: 4, maxWidth: 320 },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 8,
+  },
+  bannerText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  retryText: { fontSize: 13, fontWeight: '700' },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
   filtersRow: {
     flexDirection: 'row',
     alignItems: 'center',

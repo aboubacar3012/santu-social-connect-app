@@ -27,11 +27,23 @@ export default function PublishScreen() {
   }
 
   const handleSubmit = async (data: EventFormData) => {
-    Alert.alert(
-      'Événement publié',
-      `« ${data.title} » a été enregistré. Il apparaîtra bientôt dans la liste.`,
-      [{ text: 'OK', onPress: () => router.replace('/(tabs)') }],
-    );
+    if (!token) {
+      Alert.alert('Session expirée', 'Reconnectez-vous pour publier un événement.');
+      return;
+    }
+
+    try {
+      const payload = await buildCreateEventPayloadFromForm(token, data);
+      const { event } = await createEventApi(token, payload);
+      Alert.alert('Événement publié', `« ${event.title} » a été enregistré.`, [
+        { text: 'OK', onPress: () => router.replace('/(tabs)') },
+      ]);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Impossible de publier cet événement.';
+      Alert.alert('Publication', message);
+      throw error;
+    }
   };
 
   return (

@@ -13,6 +13,7 @@ export type ProfileCardProps = {
   name: string;
   avatarInitial: string;
   avatarUri?: string | null;
+  subscriptionLabel?: string;
   jobTitle: string;
   company: string;
   city: string;
@@ -25,6 +26,7 @@ export function ProfileCard({
   name,
   avatarInitial,
   avatarUri,
+  subscriptionLabel,
   jobTitle,
   company,
   city,
@@ -40,6 +42,15 @@ export function ProfileCard({
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
+      {subscriptionLabel ? (
+        <View style={[styles.subscriptionBadge, { backgroundColor: `${ACCENT}14` }]}>
+          <MaterialIcons name="workspace-premium" size={13} color={ACCENT} />
+          <ThemedText style={[styles.subscriptionText, { color: ACCENT }]}>
+            {subscriptionLabel}
+          </ThemedText>
+        </View>
+      ) : null}
+
       <View style={styles.header}>
         <View style={[styles.avatar, { backgroundColor: `${ACCENT}22` }]}>
           {avatarUri ? (
@@ -98,8 +109,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 16,
-    gap: 14,
+    gap: 12,
   },
+  subscriptionBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  subscriptionText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
   header: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
   headerBody: { flex: 1, gap: 5, paddingTop: 2 },
   avatar: {

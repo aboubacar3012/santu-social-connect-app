@@ -28,6 +28,9 @@ export type MeApiUser = {
   directoryVisible?: boolean;
   showEmailInDirectory?: boolean;
   showPhoneInDirectory?: boolean;
+  role?: 'freemium' | 'premium' | 'enterprise' | 'admin';
+  status?: 'pending' | 'active' | 'inactive' | 'deleted' | 'suspended';
+  isBlocked?: boolean;
 };
 
 export type ProfileViewUserLike = {

@@ -1,16 +1,19 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useLocalSearchParams } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MemberDetail } from '@/components/annuaire/member-detail';
 import { ThemedText } from '@/components/shared/themed-text';
-import { findMemberById } from '@/constants/mock-members';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { resolveProfileImageUri } from '@/libs/profile';
+import { getMemberByIdApi } from '@/services/member-detail.service';
+import type { Member } from '@/types/member';
 
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const ACCENT = '#0077B6';
 
 export default function MemberModalScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -19,22 +22,68 @@ export default function MemberModalScreen() {
   const theme = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
 
+  const [member, setMember] = useState<Member | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
-  const member = id ? findMemberById(id) : undefined;
+
+  const fetchMember = useCallback(async () => {
+    if (!id) {
+      setMember(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { member: data } = await getMemberByIdApi(id);
+      setMember(data);
+    } catch (err: unknown) {
+      setMember(null);
+      setError(err instanceof Error ? err.message : 'Membre introuvable.');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void fetchMember();
+  }, [fetchMember]);
+
+  const displayMember = useMemo(() => {
+    if (!member) return null;
+    const avatar = resolveProfileImageUri(member.avatar);
+    return avatar ? { ...member, avatar } : member;
+  }, [member]);
 
   return (
     <View style={[styles.root, { backgroundColor: pageBg }]}>
-      {member ? (
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator color={ACCENT} />
+        </View>
+      ) : displayMember ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         >
-          <MemberDetail member={member} />
+          <MemberDetail member={displayMember} />
         </ScrollView>
       ) : (
-        <View style={styles.notFound}>
+        <View style={styles.centered}>
           <MaterialIcons name="person-off" size={36} color={theme.icon} />
-          <ThemedText style={[styles.notFoundText, { color: theme.icon }]}>Membre introuvable.</ThemedText>
+          <ThemedText style={[styles.notFoundText, { color: theme.icon }]}>
+            {error ?? 'Membre introuvable.'}
+          </ThemedText>
+          {error ? (
+            <Pressable onPress={() => void fetchMember()}>
+              <ThemedText style={[styles.retryText, { color: ACCENT }]}>Réessayer</ThemedText>
+            </Pressable>
+          ) : null}
         </View>
       )}
     </View>
@@ -43,6 +92,7 @@ export default function MemberModalScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
-  notFoundText: { fontSize: 15, fontWeight: '500' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
+  notFoundText: { fontSize: 15, fontWeight: '500', textAlign: 'center' },
+  retryText: { fontSize: 14, fontWeight: '700' },
 });

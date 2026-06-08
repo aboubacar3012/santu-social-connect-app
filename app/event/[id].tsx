@@ -1,22 +1,24 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useLocalSearchParams } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventDetail } from '@/components/events/event-detail';
 import { ThemedText } from '@/components/shared/themed-text';
 import {
   EVENT_TYPE_LABELS,
-  findEventById,
   formatEventDate,
   isEventPast,
+  type EventItem,
 } from '@/constants/mock-events';
 import { Colors } from '@/constants/theme';
 import { useEventFavorites } from '@/contexts/event-favorites-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getEventByIdApi } from '@/services/event-detail.service';
 
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const ACCENT = '#0077B6';
 
 export default function EventModalScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -26,12 +28,45 @@ export default function EventModalScreen() {
   const isDark = colorScheme === 'dark';
   const { isFavorite, toggleFavorite } = useEventFavorites();
 
+  const [event, setEvent] = useState<EventItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
-  const event = id ? findEventById(id) : undefined;
+
+  const fetchEvent = useCallback(async () => {
+    if (!id) {
+      setEvent(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { event: data } = await getEventByIdApi(id);
+      setEvent(data);
+    } catch (err: unknown) {
+      setEvent(null);
+      setError(err instanceof Error ? err.message : 'Événement introuvable.');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void fetchEvent();
+  }, [fetchEvent]);
 
   return (
     <View style={[styles.root, { backgroundColor: pageBg }]}>
-      {event ? (
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator color={ACCENT} />
+        </View>
+      ) : event ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
@@ -51,9 +86,16 @@ export default function EventModalScreen() {
           />
         </ScrollView>
       ) : (
-        <View style={styles.notFound}>
+        <View style={styles.centered}>
           <MaterialIcons name="event-busy" size={36} color={theme.icon} />
-          <ThemedText style={[styles.notFoundText, { color: theme.icon }]}>Événement introuvable.</ThemedText>
+          <ThemedText style={[styles.notFoundText, { color: theme.icon }]}>
+            {error ?? 'Événement introuvable.'}
+          </ThemedText>
+          {error ? (
+            <Pressable onPress={() => void fetchEvent()}>
+              <ThemedText style={[styles.retryText, { color: ACCENT }]}>Réessayer</ThemedText>
+            </Pressable>
+          ) : null}
         </View>
       )}
     </View>
@@ -62,6 +104,7 @@ export default function EventModalScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
-  notFoundText: { fontSize: 15, fontWeight: '500' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
+  notFoundText: { fontSize: 15, fontWeight: '500', textAlign: 'center' },
+  retryText: { fontSize: 14, fontWeight: '700' },
 });

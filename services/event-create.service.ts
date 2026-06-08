@@ -1,17 +1,17 @@
-import { toEventTypeApi, toEventTypeUi } from '@/libs/event-type';
-import { formatApiErrorMessage } from '@/services/profil-edit.service';
+import { toEventTypeApi, toEventTypeUi } from "@/libs/event-type";
+import { formatApiErrorMessage } from "@/services/profil-edit.service";
 import type {
   CreateEventApiPayload,
   CreateEventApiResponse,
   EventItem,
-} from '@/types/event';
+} from "@/types/event";
 
-const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(
+const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000").replace(
   /\/+$/,
-  '',
+  "",
 );
 
-type EventItemWire = Omit<EventItem, 'type'> & { type: string };
+type EventItemWire = Omit<EventItem, "type"> & { type: string };
 
 function mapEventFromApi(event: EventItemWire): EventItem {
   return {
@@ -28,10 +28,10 @@ export async function createEventApi(
   payload: CreateEventApiPayload,
 ): Promise<CreateEventApiResponse> {
   const res = await fetch(`${API_BASE}/events`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
+      Accept: "application/json",
+      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
@@ -49,12 +49,14 @@ export async function createEventApi(
   }
 
   if (!res.ok) {
-    throw new Error(formatApiErrorMessage(body, text || `Erreur ${res.status}`));
+    throw new Error(
+      formatApiErrorMessage(body, text || `Erreur ${res.status}`),
+    );
   }
 
   const data = body as { event?: EventItemWire };
-  if (!data?.event || typeof data.event !== 'object') {
-    throw new Error('Réponse création événement invalide.');
+  if (!data?.event || typeof data.event !== "object") {
+    throw new Error("Réponse création événement invalide.");
   }
 
   return { event: mapEventFromApi(data.event) };

@@ -2,6 +2,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   Modal,
   Platform,
@@ -113,6 +114,10 @@ export function CreateEvent({ onSubmit }: CreateEventProps) {
 
   const handleSubmit = async () => {
     if (!canSubmit || !eventDate || !eventTime) return;
+    if(!linkUrl.trim().toLowerCase().startsWith('http')) {
+      Alert.alert('Lien invalide', 'Le lien doit commencer par http:// ou https://');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -125,7 +130,7 @@ export function CreateEvent({ onSubmit }: CreateEventProps) {
         eventTime,
         address: address.trim(),
         linkLabel: linkLabel.trim(),
-        linkUrl: linkUrl.trim(),
+        linkUrl: linkUrl.trim().toLowerCase(),
       });
       setTitle('');
       setType('Networking');
