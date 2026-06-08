@@ -2,6 +2,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Redirect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -18,36 +19,48 @@ import type { AuthUser } from '@/hooks/use-auth';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-/** Palette inspirée de l’UI Tesla : neutres, contraste net, peu d’ornements. */
-const TESLA = {
+const ACCENT = '#0077B6';
+
+const PALETTE = {
   light: {
-    canvas: '#F2F2F2',
-    surface: '#FFFFFF',
-    ink: '#171A20',
-    inkMuted: '#5C5E62',
-    inkFaint: '#8E8E8E',
-    divider: 'rgba(0,0,0,0.08)',
-    btnOn: '#FFFFFF',
-    btnDisabled: '#D0D1D2',
-    btnDisabledText: '#8E8E8E',
+    canvas: '#F2F4F7',
+    card: '#FFFFFF',
+    text: '#11181C',
+    muted: '#687076',
+    faint: '#9BA1A6',
+    divider: 'rgba(0,0,0,0.06)',
+    chip: 'rgba(0,119,182,0.08)',
+    btnDisabled: '#D8DCE3',
+    btnDisabledText: '#9BA1A6',
     error: '#E82127',
   },
   dark: {
-    canvas: '#000000',
-    surface: '#1A1A1A',
-    ink: '#F4F4F4',
-    inkMuted: '#A2A3A5',
-    inkFaint: '#737373',
-    divider: 'rgba(255,255,255,0.12)',
-    btnOn: '#171A20',
-    btnDisabled: '#2A2A2A',
-    btnDisabledText: '#737373',
-    error: '#FF4D4D',
+    canvas: '#0A0A0C',
+    card: '#1A1A1E',
+    text: '#ECEDEE',
+    muted: '#9BA1A6',
+    faint: '#6B7280',
+    divider: 'rgba(255,255,255,0.08)',
+    chip: 'rgba(0,119,182,0.18)',
+    btnDisabled: '#2A2A30',
+    btnDisabledText: '#6B7280',
+    error: '#FF6B6B',
   },
 } as const;
 
 const FR_COUNTRY_CODE = '+33';
 const FR_NATIONAL_LENGTH = 9;
+
+const STEP_META = {
+  phone: {
+    title: 'Bienvenue',
+    subtitle: 'Entrez votre numéro pour recevoir un code de connexion par SMS.',
+  },
+  otp: {
+    title: 'Vérifiez votre numéro',
+    subtitle: 'Saisissez le code à 6 chiffres envoyé sur votre téléphone.',
+  },
+} as const;
 
 function normalizeFrenchPhone(raw: string): string {
   let digits = raw.replace(/\D/g, '');
@@ -74,6 +87,7 @@ function formatFrenchNationalInput(e164: string): string {
 function isValidFrenchPhone(e164: string): boolean {
   return /^\+33[1-9]\d{8}$/.test(e164);
 }
+
 export default function AuthScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -90,25 +104,16 @@ export default function AuthScreen() {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const t = isDark ? TESLA.dark : TESLA.light;
-  const bg = t.canvas;
-  const cardBg = t.surface;
-  const cardBorder = t.divider;
-  const subtleText = t.inkFaint;
-  const mutedText = t.inkMuted;
-  const fieldBg = t.surface;
-  const fieldBorder = t.divider;
-  const primaryBtnBg = t.ink;
-  const primaryBtnFg = isDark ? t.surface : t.btnOn;
+  const t = isDark ? PALETTE.dark : PALETTE.light;
   const statusH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : insets.top;
+  const stepIndex = step === 'phone' ? 0 : 1;
 
-  const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL
+  const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL;
   if (!apiBaseUrl) {
     throw new Error('EXPO_PUBLIC_API_URL is not set');
   }
 
   const phoneOk = useMemo(() => isValidFrenchPhone(phoneE164), [phoneE164]);
-
   const otpOk = useMemo(() => /^\d{6,8}$/.test(otpCode), [otpCode]);
 
   const canContinuePhone = phoneOk && !isRequestingOtp;
@@ -116,8 +121,8 @@ export default function AuthScreen() {
 
   const phoneDisplay = useMemo(() => formatFrenchPhoneDisplay(phoneE164), [phoneE164]);
   const phoneNationalInput = useMemo(() => formatFrenchNationalInput(phoneE164), [phoneE164]);
+  const meta = STEP_META[step];
 
-  // Ici on demande un OTP au backend pour la validation du numéro de téléphone
   const onContinuePhone = useCallback(async () => {
     if (!phoneOk || isRequestingOtp) return;
     setAuthError(null);
@@ -141,7 +146,6 @@ export default function AuthScreen() {
     }
   }, [apiBaseUrl, phoneE164, phoneOk, isRequestingOtp]);
 
-  // Ici on vérifie le OTP et on récupère le JWT
   const onSubmitOtp = useCallback(async () => {
     if (!otpOk || isVerifyingOtp) return;
     setAuthError(null);
@@ -187,123 +191,156 @@ export default function AuthScreen() {
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: bg }]}>
-      <StatusBar translucent backgroundColor="transparent" barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <View style={[styles.root, { backgroundColor: t.canvas }]}>
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+      />
 
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: statusH + 28, paddingBottom: Math.max(insets.bottom + 16, 28) },
+            {
+              paddingTop: Math.max(statusH + 16, 24),
+              paddingBottom: Math.max(insets.bottom + 16, 24),
+            },
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.titleBlock}>
-            <ThemedText style={[styles.tag, { color: mutedText }]}>Santu</ThemedText>
+          <View style={styles.hero}>
+            <ThemedText style={[styles.kicker, { color: ACCENT }]}>SANTU CONNECT</ThemedText>
+            <ThemedText style={[styles.title, { color: t.text }]}>{meta.title}</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: t.muted }]}>{meta.subtitle}</ThemedText>
 
-            <ThemedText style={[styles.title, { color: t.ink }]}>
-              {step === 'phone' ? 'Connexion' : 'Code de vérification'}
-            </ThemedText>
-            <View style={[styles.titleUnderline, { backgroundColor: cardBorder }]} />
+            <View style={styles.stepRow}>
+              {(['phone', 'otp'] as const).map((id, index) => (
+                <View
+                  key={id}
+                  style={[
+                    styles.stepDot,
+                    {
+                      backgroundColor:
+                        index <= stepIndex ? ACCENT : isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                      flex: index <= stepIndex ? 1.4 : 1,
+                    },
+                  ]}
+                />
+              ))}
+            </View>
           </View>
 
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: cardBg, borderColor: cardBorder },
-              !isDark && styles.cardShadowLight,
-            ]}
-          >
-            {step === 'phone' && (
+          <View style={[styles.card, { backgroundColor: t.card, borderColor: t.divider }]}>
+            {step === 'phone' ? (
               <>
-                <ThemedText style={[styles.fieldLabel, { color: subtleText }]}>NUMÉRO FRANÇAIS</ThemedText>
-                <View style={[styles.inputShell, { backgroundColor: fieldBg, borderColor: fieldBorder }]}>
-                  <MaterialIcons name="phone-iphone" size={22} color={subtleText} style={styles.inputIcon} />
-                  <ThemedText style={[styles.countryPrefix, { color: t.ink }]}>{FR_COUNTRY_CODE}</ThemedText>
-                  <View style={[styles.prefixDivider, { backgroundColor: fieldBorder }]} />
-                  <TextInput
-                    value={phoneNationalInput}
-                    onChangeText={(txt) => {
-                      setPhoneE164(normalizeFrenchPhone(txt));
-                      setAuthError(null);
-                    }}
-                    placeholder="6 12 34 56 78"
-                    placeholderTextColor={subtleText}
-                    keyboardType="phone-pad"
-                    style={[styles.input, { color: t.ink }]}
-                    autoComplete="tel"
-                    textContentType="telephoneNumber"
-                    maxLength={14}
-                  />
+                <View style={styles.fieldGroup}>
+                  <ThemedText style={[styles.fieldLabel, { color: t.muted }]}>
+                    Numéro de mobile
+                  </ThemedText>
+                  <View style={[styles.inputShell, { backgroundColor: t.canvas, borderColor: t.divider }]}>
+                    <View style={[styles.prefixBadge, { backgroundColor: t.chip }]}>
+                      <MaterialIcons name="phone-iphone" size={16} color={ACCENT} />
+                      <ThemedText style={[styles.prefixText, { color: t.text }]}>
+                        {FR_COUNTRY_CODE}
+                      </ThemedText>
+                    </View>
+                    <TextInput
+                      value={phoneNationalInput}
+                      onChangeText={(txt) => {
+                        setPhoneE164(normalizeFrenchPhone(txt));
+                        setAuthError(null);
+                      }}
+                      placeholder="6 12 34 56 78"
+                      placeholderTextColor={t.faint}
+                      keyboardType="phone-pad"
+                      style={[styles.input, { color: t.text }]}
+                      autoComplete="tel"
+                      textContentType="telephoneNumber"
+                      maxLength={14}
+                    />
+                  </View>
+                  <ThemedText style={[styles.hint, { color: t.faint }]}>
+                    Numéro français à 9 chiffres, sans le 0 initial.
+                  </ThemedText>
                 </View>
+
+                {authError ? (
+                  <View style={[styles.errorBanner, { backgroundColor: `${t.error}14` }]}>
+                    <MaterialIcons name="error-outline" size={16} color={t.error} />
+                    <ThemedText style={[styles.errorText, { color: t.error }]}>{authError}</ThemedText>
+                  </View>
+                ) : null}
+
                 <Pressable
                   onPress={onContinuePhone}
                   disabled={!canContinuePhone}
                   style={({ pressed }) => [
                     styles.primaryBtn,
                     {
-                      backgroundColor: canContinuePhone ? primaryBtnBg : t.btnDisabled,
-                      opacity: pressed && canContinuePhone ? 0.88 : 1,
+                      backgroundColor: canContinuePhone ? ACCENT : t.btnDisabled,
+                      opacity: pressed && canContinuePhone ? 0.9 : 1,
                     },
                   ]}
                 >
-                  <MaterialIcons
-                    name={isRequestingOtp ? 'hourglass-top' : 'arrow-forward'}
-                    size={20}
-                    color={canContinuePhone ? primaryBtnFg : t.btnDisabledText}
-                  />
-                  <ThemedText
-                    style={[
-                      styles.primaryBtnText,
-                      { color: canContinuePhone ? primaryBtnFg : t.btnDisabledText },
-                    ]}
-                  >
-                    {isRequestingOtp ? 'Envoi…' : 'Recevoir un code'}
-                  </ThemedText>
+                  {isRequestingOtp ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <ThemedText style={[styles.primaryBtnText, { color: '#FFFFFF' }]}>
+                        Recevoir mon code
+                      </ThemedText>
+                      <MaterialIcons name="arrow-forward" size={18} color="#FFFFFF" />
+                    </>
+                  )}
                 </Pressable>
-                {authError ? (
-                  <ThemedText style={[styles.errorText, { color: t.error }]}>{authError}</ThemedText>
-                ) : null}
               </>
-            )}
-
-            {step === 'otp' && (
+            ) : (
               <>
                 <Pressable onPress={goBackToPhone} hitSlop={12} style={styles.backRow}>
-                  <MaterialIcons name="arrow-back-ios-new" size={18} color={mutedText} />
-                  <ThemedText style={[styles.backText, { color: mutedText }]}>Modifier le numéro</ThemedText>
+                  <MaterialIcons name="arrow-back" size={18} color={t.muted} />
+                  <ThemedText style={[styles.backText, { color: t.muted }]}>
+                    Changer de numéro
+                  </ThemedText>
                 </Pressable>
-                <ThemedText style={[styles.phoneSummary, { color: t.ink }]}>{phoneDisplay || '—'}</ThemedText>
 
-                <ThemedText style={[styles.fieldLabel, { color: subtleText }]}>CODE (SMS)</ThemedText>
-                <View style={[styles.inputShell, { backgroundColor: fieldBg, borderColor: fieldBorder }]}>
-                  <MaterialIcons name="dialpad" size={20} color={subtleText} style={styles.inputIcon} />
-                  <TextInput
-                    value={otpCode}
-                    onChangeText={(txt) => {
-                      setOtpCode(txt.replace(/\D/g, '').slice(0, 10));
-                      setAuthError(null);
-                    }}
-                    placeholder="Entrez le code reçu"
-                    placeholderTextColor={subtleText}
-                    keyboardType="number-pad"
-                    style={[styles.input, { color: t.ink }]}
-                    secureTextEntry={false}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="one-time-code"
-                    textContentType="oneTimeCode"
-                  />
+                <View style={[styles.phoneChip, { backgroundColor: t.chip, borderColor: `${ACCENT}33` }]}>
+                  <MaterialIcons name="sms" size={16} color={ACCENT} />
+                  <ThemedText style={[styles.phoneChipText, { color: t.text }]}>
+                    Code envoyé au {phoneDisplay || '—'}
+                  </ThemedText>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <ThemedText style={[styles.fieldLabel, { color: t.muted }]}>Code de vérification</ThemedText>
+                  <View style={[styles.otpShell, { backgroundColor: t.canvas, borderColor: t.divider }]}>
+                    <TextInput
+                      value={otpCode}
+                      onChangeText={(txt) => {
+                        setOtpCode(txt.replace(/\D/g, '').slice(0, 8));
+                        setAuthError(null);
+                      }}
+                      placeholder="• • • • • •"
+                      placeholderTextColor={t.faint}
+                      keyboardType="number-pad"
+                      style={[styles.otpInput, { color: t.text }]}
+                      autoComplete="one-time-code"
+                      textContentType="oneTimeCode"
+                      maxLength={8}
+                    />
+                  </View>
                 </View>
 
                 {authError ? (
-                  <ThemedText style={[styles.errorText, { color: t.error }]}>{authError}</ThemedText>
+                  <View style={[styles.errorBanner, { backgroundColor: `${t.error}14` }]}>
+                    <MaterialIcons name="error-outline" size={16} color={t.error} />
+                    <ThemedText style={[styles.errorText, { color: t.error }]}>{authError}</ThemedText>
+                  </View>
                 ) : null}
 
                 <Pressable
@@ -312,26 +349,51 @@ export default function AuthScreen() {
                   style={({ pressed }) => [
                     styles.primaryBtn,
                     {
-                      backgroundColor: canSubmitOtp ? primaryBtnBg : t.btnDisabled,
-                      opacity: pressed && canSubmitOtp ? 0.88 : 1,
+                      backgroundColor: canSubmitOtp ? ACCENT : t.btnDisabled,
+                      opacity: pressed && canSubmitOtp ? 0.9 : 1,
                     },
                   ]}
                 >
-                  <MaterialIcons
-                    name={isVerifyingOtp ? 'hourglass-top' : 'login'}
-                    size={20}
-                    color={canSubmitOtp ? primaryBtnFg : t.btnDisabledText}
-                  />
-                  <ThemedText
-                    style={[styles.primaryBtnText, { color: canSubmitOtp ? primaryBtnFg : t.btnDisabledText }]}
-                  >
-                    {isVerifyingOtp ? 'Vérification…' : 'Valider'}
+                  {isVerifyingOtp ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <ThemedText
+                        style={[
+                          styles.primaryBtnText,
+                          { color: canSubmitOtp ? '#FFFFFF' : t.btnDisabledText },
+                        ]}
+                      >
+                        Se connecter
+                      </ThemedText>
+                      <MaterialIcons
+                        name="login"
+                        size={18}
+                        color={canSubmitOtp ? '#FFFFFF' : t.btnDisabledText}
+                      />
+                    </>
+                  )}
+                </Pressable>
+
+                <Pressable
+                  onPress={onContinuePhone}
+                  disabled={isRequestingOtp}
+                  style={styles.resendBtn}
+                >
+                  <ThemedText style={[styles.resendText, { color: isRequestingOtp ? t.faint : ACCENT }]}>
+                    {isRequestingOtp ? 'Renvoi en cours…' : 'Renvoyer le code'}
                   </ThemedText>
                 </Pressable>
               </>
             )}
           </View>
 
+          <View style={styles.footer}>
+            <MaterialIcons name="lock-outline" size={14} color={t.faint} />
+            <ThemedText style={[styles.footerText, { color: t.faint }]}>
+              Connexion sécurisée
+            </ThemedText>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -339,168 +401,173 @@ export default function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
+  root: { flex: 1 },
+  flex: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
     justifyContent: 'center',
-    alignItems: 'stretch',
-    zIndex: 5,
+    paddingHorizontal: 24,
+    gap: 20,
   },
-  titleBlock: {
+  hero: {
     alignItems: 'flex-start',
-    alignSelf: 'center',
-    width: '100%',
-    maxWidth: 430,
-    marginBottom: 4,
+    gap: 8,
   },
-  tag: {
+  kicker: {
     fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 3.2,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-    lineHeight: 14,
+    fontWeight: '700',
+    letterSpacing: 2.4,
   },
   title: {
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: '300',
-    letterSpacing: -1.2,
-    textAlign: 'left',
-    marginBottom: 12,
-  },
-  titleUnderline: {
-    width: 36,
-    height: 2,
-    borderRadius: 1,
-    marginBottom: 4,
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '800',
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 15,
     lineHeight: 22,
-    textAlign: 'center',
-    letterSpacing: 0.1,
-    paddingHorizontal: 8,
+    fontWeight: '500',
+    maxWidth: 340,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    gap: 6,
+    width: '100%',
+    marginTop: 8,
+  },
+  stepDot: {
+    height: 4,
+    borderRadius: 2,
   },
   card: {
-    alignSelf: 'center',
-    width: '100%',
-    maxWidth: 430,
-    borderRadius: 8,
-    padding: 20,
-    paddingTop: 22,
+    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
     gap: 16,
-    marginTop: 20,
-    marginBottom: 16,
   },
-  cardShadowLight: {
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
+  fieldGroup: { gap: 8 },
   fieldLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 2.2,
-    marginBottom: -2,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   inputShell: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 4,
+    borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
-    minHeight: 52,
+    paddingHorizontal: 12,
+    minHeight: 54,
+    gap: 10,
   },
-  inputIcon: {
-    marginRight: 10,
-    opacity: 0.85,
+  prefixBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
-  countryPrefix: {
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-    marginRight: 10,
-  },
-  prefixDivider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: 'stretch',
-    marginVertical: 12,
-    marginRight: 12,
-  },
-  hintText: {
-    fontSize: 12,
-    lineHeight: 17,
-    letterSpacing: 0.1,
-    marginTop: -8,
+  prefixText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: '600',
+    paddingVertical: 12,
+    letterSpacing: 0.5,
+  },
+  hint: {
+    fontSize: 12,
+    lineHeight: 17,
     fontWeight: '500',
-    paddingVertical: 14,
-    letterSpacing: 0.2,
+  },
+  otpShell: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    minHeight: 58,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  otpInput: {
+    fontSize: 26,
+    fontWeight: '700',
+    letterSpacing: 10,
+    textAlign: 'center',
+    paddingVertical: 10,
   },
   primaryBtn: {
-    minHeight: 50,
-    borderRadius: 4,
+    minHeight: 52,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 6,
   },
   primaryBtnText: {
     fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: 0.4,
+    fontWeight: '700',
   },
   backRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: -2,
+    gap: 6,
     alignSelf: 'flex-start',
-    paddingVertical: 2,
   },
   backText: {
     fontSize: 13,
     fontWeight: '600',
-    letterSpacing: 0.2,
   },
-  phoneSummary: {
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-    marginBottom: 2,
+  phoneChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  errorText: {
+  phoneChipText: {
+    flex: 1,
     fontSize: 13,
     fontWeight: '600',
-  },
-  accentLine: {
-    width: 40,
-    height: 3,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  legal: {
-    fontSize: 12,
     lineHeight: 18,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  resendBtn: {
+    alignSelf: 'center',
+    paddingVertical: 4,
+  },
+  resendText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+  },
+  footerText: {
+    fontSize: 12,
+    fontWeight: '500',
     textAlign: 'center',
-    letterSpacing: 0.1,
-    maxWidth: 400,
-    paddingHorizontal: 8,
   },
 });
-

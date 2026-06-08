@@ -18,7 +18,7 @@ const ACCENT = '#0077B6';
 
 const STEPS = [
   {
-    label: 'Marseille',
+    label: 'Santu Connect',
     title: 'Le réseau\ndes entrepreneurs.',
     body: 'Rejoignez une communauté d\'entrepreneurs marseillais. Échangez, inspirez-vous et grandissez ensemble.',
   },
