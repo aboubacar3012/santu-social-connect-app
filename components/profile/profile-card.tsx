@@ -1,4 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Image } from 'expo-image';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -11,6 +12,7 @@ const ACCENT = '#0077B6';
 export type ProfileCardProps = {
   name: string;
   avatarInitial: string;
+  avatarUri?: string | null;
   jobTitle: string;
   company: string;
   city: string;
@@ -22,6 +24,7 @@ export type ProfileCardProps = {
 export function ProfileCard({
   name,
   avatarInitial,
+  avatarUri,
   jobTitle,
   company,
   city,
@@ -39,7 +42,11 @@ export function ProfileCard({
     <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
       <View style={styles.header}>
         <View style={[styles.avatar, { backgroundColor: `${ACCENT}22` }]}>
-          <ThemedText style={[styles.avatarText, { color: ACCENT }]}>{avatarInitial}</ThemedText>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="cover" />
+          ) : (
+            <ThemedText style={[styles.avatarText, { color: ACCENT }]}>{avatarInitial}</ThemedText>
+          )}
         </View>
 
         <View style={styles.headerBody}>
@@ -101,7 +108,9 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  avatarImage: { width: 64, height: 64 },
   avatarText: { fontSize: 26, fontWeight: '800' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   name: { fontSize: 20, fontWeight: '800', letterSpacing: -0.4 },

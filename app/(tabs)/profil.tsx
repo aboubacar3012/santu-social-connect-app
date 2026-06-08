@@ -1,10 +1,11 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ProfileCard } from '@/components/profile/profile-card';
 import { ProfileContactCard } from '@/components/profile/profile-contact-card';
+import { ProfileFormData, UpdateProfil } from '@/components/profile/update-profil';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
@@ -14,20 +15,16 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 const ACCENT = '#0077B6';
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
 
-const MOCK_PROFILE = {
+const DEFAULT_PROFILE: ProfileFormData & { verified: boolean } = {
   name: 'Aboubacar',
   jobTitle: 'Fondateur',
   company: 'Santu Connect',
   city: 'Marseille',
   bio: 'Je connecte les entrepreneurs marseillais pour créer des opportunités et faire grandir l’écosystème local.',
   email: 'aboubacar@connect.santu.io',
-  phone: '+33 6 12 34 56 78',
+  avatarUri: null,
   verified: true,
 };
-
-const MENU_ITEMS = [
-  { icon: 'edit' as const, label: 'Modifier mon profil' },
-];
 
 function formatPhoneE164(e164: string): string {
   const d = e164.replace(/\D/g, '');
@@ -44,6 +41,8 @@ export default function ProfilScreen() {
   const router = useRouter();
   const { signOut, user } = useAuth();
 
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [isEditing, setIsEditing] = useState(false);
   const [showPhonePublic, setShowPhonePublic] = useState(false);
   const [showEmailPublic, setShowEmailPublic] = useState(true);
 
@@ -52,8 +51,26 @@ export default function ProfilScreen() {
   const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
   const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
-  const email = user?.email?.trim() || MOCK_PROFILE.email;
-  const phone = user?.phoneE164 ? formatPhoneE164(user.phoneE164) : MOCK_PROFILE.phone;
+  const email = user?.email?.trim() || profile.email;
+  const phone = user?.phoneE164 ? formatPhoneE164(user.phoneE164) : '+33 6 12 34 56 78';
+
+  const editInitial = useMemo<ProfileFormData>(
+    () => ({
+      name: profile.name,
+      jobTitle: profile.jobTitle,
+      company: profile.company,
+      city: profile.city,
+      bio: profile.bio,
+      email,
+      avatarUri: profile.avatarUri,
+    }),
+    [profile, email],
+  );
+
+  const handleSaveProfile = async (data: ProfileFormData) => {
+    setProfile((prev) => ({ ...prev, ...data }));
+    setIsEditing(false);
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -61,76 +78,79 @@ export default function ProfilScreen() {
   };
 
   return (
-    <SafeScrollView screenBackgroundColor={pageBg}>
-      <View style={styles.header}>
-        <ThemedText style={[styles.kicker, { color: theme.icon }]}>MON COMPTE</ThemedText>
-        <ThemedText style={[styles.title, { color: theme.text }]}>Mon profil</ThemedText>
-      </View>
+    <>
+      <SafeScrollView screenBackgroundColor={pageBg}>
+        <View style={styles.header}>
+          <ThemedText style={[styles.kicker, { color: theme.icon }]}>MON COMPTE</ThemedText>
+          <ThemedText style={[styles.title, { color: theme.text }]}>Mon profil</ThemedText>
+        </View>
 
-      <View style={styles.profileCardWrap}>
-        <ProfileCard
-          name={MOCK_PROFILE.name}
-          avatarInitial={MOCK_PROFILE.name.charAt(0).toUpperCase()}
-          jobTitle={MOCK_PROFILE.jobTitle}
-          company={MOCK_PROFILE.company}
-          city={MOCK_PROFILE.city}
-          bio={MOCK_PROFILE.bio}
-          isVerified={MOCK_PROFILE.verified}
-        />
-      </View>
-
-      <View style={styles.sectionBlock}>
-        <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>COORDONNÉES</ThemedText>
-        <ThemedText style={[styles.sectionHint, { color: theme.icon }]}>
-          Gérez ce que les autres entrepreneurs peuvent voir.
-        </ThemedText>
-
-        <View style={styles.contactList}>
-          <ProfileContactCard
-            icon="email"
-            label="E-mail"
-            value={email}
-            isPublic={showEmailPublic}
-            onTogglePublic={setShowEmailPublic}
-          />
-          <ProfileContactCard
-            icon="phone"
-            label="Téléphone"
-            value={phone}
-            isPublic={showPhonePublic}
-            onTogglePublic={setShowPhonePublic}
+        <View style={styles.profileCardWrap}>
+          <ProfileCard
+            name={profile.name}
+            avatarInitial={profile.name.charAt(0).toUpperCase()}
+            avatarUri={profile.avatarUri}
+            jobTitle={profile.jobTitle}
+            company={profile.company}
+            city={profile.city}
+            bio={profile.bio}
+            isVerified={profile.verified}
           />
         </View>
-      </View>
 
-      <View style={[styles.menu, { backgroundColor: cardBg, borderColor: divider }]}>
-        {MENU_ITEMS.map((item, index) => (
-          <Pressable
-            key={item.label}
-            style={[
-              styles.menuRow,
-              index < MENU_ITEMS.length - 1 && { borderBottomColor: divider, borderBottomWidth: StyleSheet.hairlineWidth },
-            ]}
-          >
+        <View style={styles.sectionBlock}>
+          <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>COORDONNÉES</ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: theme.icon }]}>
+            Gérez ce que les autres entrepreneurs peuvent voir.
+          </ThemedText>
+
+          <View style={styles.contactList}>
+            <ProfileContactCard
+              icon="email"
+              label="E-mail"
+              value={email}
+              isPublic={showEmailPublic}
+              onTogglePublic={setShowEmailPublic}
+            />
+            <ProfileContactCard
+              icon="phone"
+              label="Téléphone"
+              value={phone}
+              isPublic={showPhonePublic}
+              onTogglePublic={setShowPhonePublic}
+            />
+          </View>
+        </View>
+
+        <View style={[styles.menu, { backgroundColor: cardBg, borderColor: divider }]}>
+          <Pressable onPress={() => setIsEditing(true)} style={styles.menuRow}>
             <View style={[styles.menuIcon, { backgroundColor: chipBg }]}>
-              <MaterialIcons name={item.icon} size={18} color={ACCENT} />
+              <MaterialIcons name="edit" size={18} color={ACCENT} />
             </View>
-            <ThemedText style={[styles.menuLabel, { color: theme.text }]}>{item.label}</ThemedText>
+            <ThemedText style={[styles.menuLabel, { color: theme.text }]}>Modifier mon profil</ThemedText>
             <MaterialIcons name="chevron-right" size={20} color={theme.icon} />
           </Pressable>
-        ))}
-      </View>
+        </View>
 
-      <Pressable
-        onPress={handleLogout}
-        style={[styles.logoutBtn, { borderColor: divider, backgroundColor: cardBg }]}
-      >
-        <MaterialIcons name="logout" size={18} color="#E82127" />
-        <ThemedText style={styles.logoutText}>Se déconnecter</ThemedText>
-      </Pressable>
+        <Pressable
+          onPress={handleLogout}
+          style={[styles.logoutBtn, { borderColor: divider, backgroundColor: cardBg }]}
+        >
+          <MaterialIcons name="logout" size={18} color="#E82127" />
+          <ThemedText style={styles.logoutText}>Se déconnecter</ThemedText>
+        </Pressable>
 
-      <View style={styles.tabBarSpacer} />
-    </SafeScrollView>
+        <View style={styles.tabBarSpacer} />
+      </SafeScrollView>
+
+      <UpdateProfil
+        visible={isEditing}
+        initial={editInitial}
+        phone={phone}
+        onCancel={() => setIsEditing(false)}
+        onSave={handleSaveProfile}
+      />
+    </>
   );
 }
 
