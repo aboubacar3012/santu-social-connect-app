@@ -37,6 +37,9 @@ export type EventFormData = {
 
 export type CreateEventProps = {
   onSubmit: (data: EventFormData) => void | Promise<void>;
+  initial?: EventFormData;
+  submitLabel?: string;
+  resetOnSubmit?: boolean;
 };
 
 function formatEventDate(d: Date): string {
@@ -62,7 +65,12 @@ function defaultTime(): Date {
   return d;
 }
 
-export function CreateEvent({ onSubmit }: CreateEventProps) {
+export function CreateEvent({
+  onSubmit,
+  initial,
+  submitLabel = "Publier l'événement",
+  resetOnSubmit = true,
+}: CreateEventProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
@@ -71,15 +79,15 @@ export function CreateEvent({ onSubmit }: CreateEventProps) {
   const fieldBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
   const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
 
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState<EventType>('Networking');
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [description, setDescription] = useState('');
-  const [eventDate, setEventDate] = useState<Date | null>(null);
-  const [eventTime, setEventTime] = useState<Date | null>(null);
-  const [address, setAddress] = useState('');
-  const [linkLabel, setLinkLabel] = useState('');
-  const [linkUrl, setLinkUrl] = useState('');
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [type, setType] = useState<EventType>(initial?.type ?? 'Networking');
+  const [imageUri, setImageUri] = useState<string | null>(initial?.imageUri ?? null);
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [eventDate, setEventDate] = useState<Date | null>(initial?.eventDate ?? null);
+  const [eventTime, setEventTime] = useState<Date | null>(initial?.eventTime ?? null);
+  const [address, setAddress] = useState(initial?.address ?? '');
+  const [linkLabel, setLinkLabel] = useState(initial?.linkLabel ?? '');
+  const [linkUrl, setLinkUrl] = useState(initial?.linkUrl ?? '');
   const [submitting, setSubmitting] = useState(false);
 
   const [androidDateOpen, setAndroidDateOpen] = useState(false);
@@ -114,7 +122,9 @@ export function CreateEvent({ onSubmit }: CreateEventProps) {
 
   const handleSubmit = async () => {
     if (!canSubmit || !eventDate || !eventTime) return;
-    if(!linkUrl.trim().toLowerCase().startsWith('http')) {
+
+    const trimmedLinkUrl = linkUrl.trim();
+    if (trimmedLinkUrl && !trimmedLinkUrl.toLowerCase().startsWith('http')) {
       Alert.alert('Lien invalide', 'Le lien doit commencer par http:// ou https://');
       return;
     }
@@ -130,17 +140,19 @@ export function CreateEvent({ onSubmit }: CreateEventProps) {
         eventTime,
         address: address.trim(),
         linkLabel: linkLabel.trim(),
-        linkUrl: linkUrl.trim().toLowerCase(),
+        linkUrl: trimmedLinkUrl.toLowerCase(),
       });
-      setTitle('');
-      setType('Networking');
-      setImageUri(null);
-      setDescription('');
-      setEventDate(null);
-      setEventTime(null);
-      setAddress('');
-      setLinkLabel('');
-      setLinkUrl('');
+      if (resetOnSubmit) {
+        setTitle('');
+        setType('Networking');
+        setImageUri(null);
+        setDescription('');
+        setEventDate(null);
+        setEventTime(null);
+        setAddress('');
+        setLinkLabel('');
+        setLinkUrl('');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -321,7 +333,7 @@ export function CreateEvent({ onSubmit }: CreateEventProps) {
           <>
             <MaterialIcons name="event-available" size={20} color={canSubmit ? '#FFF' : theme.icon} />
             <ThemedText style={[styles.submitBtnText, { color: canSubmit ? '#FFF' : theme.icon }]}>
-              Publier l&apos;événement
+              {submitLabel}
             </ThemedText>
           </>
         )}

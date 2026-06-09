@@ -1,6 +1,7 @@
 import type { EventFormData } from '@/components/events/create-event';
+import { resolveProfileImageUri } from '@/libs/profile';
 import { resolveProfileAssetValueForApi } from '@/services/profil-edit.service';
-import type { CreateEventApiPayload } from '@/types/event';
+import type { CreateEventApiPayload, EventItem } from '@/types/event';
 
 export function mergeEventDateTime(eventDate: Date, eventTime: Date): string {
   const out = new Date(eventDate);
@@ -38,4 +39,32 @@ export async function buildCreateEventPayloadFromForm(
   }
 
   return payload;
+}
+
+export function eventItemToFormData(event: EventItem): EventFormData {
+  const startsAt = new Date(event.startsAt);
+  const eventDate = new Date(
+    startsAt.getFullYear(),
+    startsAt.getMonth(),
+    startsAt.getDate(),
+  );
+
+  return {
+    title: event.title,
+    type: event.type,
+    imageUri: resolveProfileImageUri(event.image),
+    description: event.description,
+    eventDate,
+    eventTime: startsAt,
+    address: event.address,
+    linkLabel: event.links[0]?.label ?? '',
+    linkUrl: event.links[0]?.url ?? '',
+  };
+}
+
+export async function buildUpdateEventPayloadFromForm(
+  token: string,
+  data: EventFormData,
+): Promise<CreateEventApiPayload> {
+  return buildCreateEventPayloadFromForm(token, data);
 }

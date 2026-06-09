@@ -23,3 +23,13 @@ export type CreateEventApiPayload = {
 export type CreateEventApiResponse = {
   event: EventItem;
 };
+
+export type ListMyEventsApiResponse = {
+  events: EventItem[];
+};
+
+export type UpdateEventApiPayload = CreateEventApiPayload;
+
+export type UpdateEventApiResponse = {
+  event: EventItem;
+};

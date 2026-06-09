@@ -52,6 +52,20 @@ export default function RootLayout() {
                   }}
                 />
                 <Stack.Screen
+                  name="event/edit/[id]"
+                  options={{
+                    title: '',
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="my-events/index"
+                  options={{
+                    title: '',
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
                   name="conversation/[id]"
                   options={{
                     title: 'Discussion',

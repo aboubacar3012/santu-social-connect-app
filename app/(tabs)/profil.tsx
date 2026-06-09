@@ -305,21 +305,29 @@ export default function ProfilScreen() {
               Modifier mon profil
             </ThemedText>
           </Pressable>
-
-          {isAdmin ? (
-            <>
-              <View style={[styles.actionDivider, { backgroundColor: divider }]} />
-              <Pressable onPress={() => router.push('/(tabs)/publish')} style={styles.actionBtn}>
-                <View style={[styles.actionIcon, { backgroundColor: chipBg }]}>
-                  <MaterialIcons name="event-available" size={18} color={ACCENT} />
-                </View>
-                <ThemedText style={[styles.actionLabel, { color: theme.text }]} numberOfLines={2}>
-                  Créer un événement
-                </ThemedText>
-              </Pressable>
-            </>
-          ) : null}
         </View>
+
+        {isAdmin ? (
+          <View style={[styles.actionRow, { backgroundColor: cardBg, borderColor: divider }]}>
+            <Pressable onPress={() => router.push('/(tabs)/publish')} style={styles.actionBtn}>
+              <View style={[styles.actionIcon, { backgroundColor: chipBg }]}>
+                <MaterialIcons name="event-available" size={18} color={ACCENT} />
+              </View>
+              <ThemedText style={[styles.actionLabel, { color: theme.text }]} numberOfLines={2}>
+                Créer un événement
+              </ThemedText>
+            </Pressable>
+            <View style={[styles.actionDivider, { backgroundColor: divider }]} />
+            <Pressable onPress={() => router.push('/my-events')} style={styles.actionBtn}>
+              <View style={[styles.actionIcon, { backgroundColor: chipBg }]}>
+                <MaterialIcons name="event-note" size={18} color={ACCENT} />
+              </View>
+              <ThemedText style={[styles.actionLabel, { color: theme.text }]} numberOfLines={2}>
+                Mes événements
+              </ThemedText>
+            </Pressable>
+          </View>
+        ) : null}
 
         <Pressable
           onPress={handleLogout}
