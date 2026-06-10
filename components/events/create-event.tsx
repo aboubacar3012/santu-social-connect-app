@@ -285,7 +285,7 @@ export function CreateEvent({
           style={[styles.bioInput, { color: theme.text, backgroundColor: fieldBg, borderColor: divider }]}
           multiline
           textAlignVertical="top"
-          maxLength={500}
+          maxLength={2000}
         />
       </View>
 
