@@ -19,6 +19,8 @@ export type EventDate = {
   year: number;
 };
 
+import type { EventStatus } from '@/libs/event-status';
+
 export type EventItem = {
   id: string;
   title: string;
@@ -27,9 +29,14 @@ export type EventItem = {
   description: string;
   date: EventDate;
   time: string;
+  endDate: EventDate | null;
+  endTime: string | null;
+  isAllDay: boolean;
   address: string;
   links: EventLink[];
+  status: EventStatus;
   startsAt: number;
+  endsAt: number | null;
 };
 
 const MONTH_LABELS = [
@@ -64,9 +71,26 @@ function dateFromDaysFromNow(days: number): EventDate {
   return { day: d.getDate(), month: d.getMonth() + 1, year: d.getFullYear() };
 }
 
-function mockEvent(partial: Omit<EventItem, 'startsAt'> & { startsAt?: number }): EventItem {
+function mockEvent(
+  partial: Omit<EventItem, 'startsAt' | 'endsAt' | 'endDate' | 'endTime' | 'isAllDay' | 'status'> & {
+    startsAt?: number;
+    endsAt?: number | null;
+    endDate?: EventDate | null;
+    endTime?: string | null;
+    isAllDay?: boolean;
+    status?: EventStatus;
+  },
+): EventItem {
   const startsAt = partial.startsAt ?? buildStartsAt(partial.date, partial.time);
-  return { ...partial, startsAt };
+  return {
+    endDate: null,
+    endTime: null,
+    isAllDay: false,
+    endsAt: null,
+    status: 'published',
+    ...partial,
+    startsAt,
+  };
 }
 
 export const MOCK_EVENTS: EventItem[] = [
@@ -155,7 +179,6 @@ export function findEventById(id: string): EventItem | undefined {
 }
 
 export function isEventPast(event: EventItem): boolean {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  return event.startsAt < todayStart.getTime();
+  const end = event.endsAt ?? event.startsAt;
+  return end < Date.now();
 }

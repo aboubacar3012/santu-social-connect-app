@@ -8,10 +8,14 @@ import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import {
   EVENT_TYPE_LABELS,
-  formatEventDate,
   type EventItem,
   type EventType,
 } from '@/constants/mock-events';
+import {
+  formatEventSchedule,
+  getEventEndTimestamp,
+  isEventPast,
+} from '@/libs/event-schedule';
 import { Colors } from '@/constants/theme';
 import { useEventFavorites } from '@/contexts/event-favorites-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -161,19 +165,20 @@ function isThisMonth(ts: number, now: Date): boolean {
 }
 
 function matchesDateFilter(event: EventItem, filter: DateFilter, now: Date): boolean {
-  const ts = event.startsAt;
+  const startTs = event.startsAt;
+  const endTs = getEventEndTimestamp(event);
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
 
   switch (filter) {
     case 'upcoming':
-      return ts >= todayStart.getTime();
+      return endTs >= todayStart.getTime();
     case 'this_week':
-      return isThisWeek(ts, now);
+      return isThisWeek(startTs, now);
     case 'this_month':
-      return isThisMonth(ts, now);
+      return isThisMonth(startTs, now);
     case 'past':
-      return ts < todayStart.getTime();
+      return endTs < todayStart.getTime();
   }
 }
 
@@ -346,23 +351,26 @@ export default function EventsScreen() {
             </ThemedText>
           </View>
         ) : (
-          events.map((event) => (
-            <EventCard
-              key={event.id}
-              title={event.title}
-              typeLabel={EVENT_TYPE_LABELS[event.type]}
-              image={event.image}
-              description={event.description}
-              dateLabel={formatEventDate(event.date)}
-              time={event.time}
-              address={event.address}
-              links={event.links}
-              isFavorite={isFavorite(event.id)}
-              isPast={event.startsAt < new Date().setHours(0, 0, 0, 0)}
-              onToggleFavorite={() => toggleFavorite(event.id)}
-              onPress={() => router.push(`/event/${event.id}`)}
-            />
-          ))
+          events.map((event) => {
+            const schedule = formatEventSchedule(event);
+            return (
+              <EventCard
+                key={event.id}
+                title={event.title}
+                typeLabel={EVENT_TYPE_LABELS[event.type]}
+                image={event.image}
+                description={event.description}
+                dateLabel={schedule.dateLabel}
+                time={schedule.time}
+                address={event.address}
+                links={event.links}
+                isFavorite={isFavorite(event.id)}
+                isPast={isEventPast(event)}
+                onToggleFavorite={() => toggleFavorite(event.id)}
+                onPress={() => router.push(`/event/${event.id}`)}
+              />
+            );
+          })
         )}
       </View>
 

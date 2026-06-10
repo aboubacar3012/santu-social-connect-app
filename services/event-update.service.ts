@@ -1,4 +1,5 @@
-import { toEventTypeApi, toEventTypeUi } from '@/libs/event-type';
+import { mapEventFromApi } from '@/libs/event-api';
+import { toEventTypeApi } from '@/libs/event-type';
 import { formatApiErrorMessage } from '@/services/profil-edit.service';
 import type {
   EventItem,
@@ -10,15 +11,6 @@ const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').re
   /\/+$/,
   '',
 );
-
-type EventItemWire = Omit<EventItem, 'type'> & { type: string };
-
-function mapEventFromApi(event: EventItemWire): EventItem {
-  return {
-    ...event,
-    type: toEventTypeUi(event.type),
-  };
-}
 
 /**
  * Met à jour un événement (admin, organisateur).
@@ -53,7 +45,7 @@ export async function updateEventApi(
     throw new Error(formatApiErrorMessage(body, text || `Erreur ${res.status}`));
   }
 
-  const data = body as { event?: EventItemWire };
+  const data = body as { event?: Parameters<typeof mapEventFromApi>[0] };
   if (!data?.event || typeof data.event !== 'object') {
     throw new Error('Réponse mise à jour événement invalide.');
   }

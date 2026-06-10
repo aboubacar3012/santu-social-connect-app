@@ -6,12 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EventDetail } from '@/components/events/event-detail';
 import { ThemedText } from '@/components/shared/themed-text';
-import {
-  EVENT_TYPE_LABELS,
-  formatEventDate,
-  isEventPast,
-  type EventItem,
-} from '@/constants/mock-events';
+import { EVENT_TYPE_LABELS, type EventItem } from '@/constants/mock-events';
+import { formatEventSchedule, isEventPast } from '@/libs/event-schedule';
 import { Colors } from '@/constants/theme';
 import { useEventFavorites } from '@/contexts/event-favorites-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -71,19 +67,24 @@ export default function EventModalScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         >
-          <EventDetail
-            title={event.title}
-            typeLabel={EVENT_TYPE_LABELS[event.type]}
-            image={event.image}
-            description={event.description}
-            dateLabel={formatEventDate(event.date)}
-            time={event.time}
-            address={event.address}
-            links={event.links}
-            isFavorite={isFavorite(event.id)}
-            isPast={isEventPast(event)}
-            onToggleFavorite={() => toggleFavorite(event.id)}
-          />
+          {(() => {
+            const schedule = formatEventSchedule(event);
+            return (
+              <EventDetail
+                title={event.title}
+                typeLabel={EVENT_TYPE_LABELS[event.type]}
+                image={event.image}
+                description={event.description}
+                dateLabel={schedule.dateLabel}
+                time={schedule.time}
+                address={event.address}
+                links={event.links}
+                isFavorite={isFavorite(event.id)}
+                isPast={isEventPast(event)}
+                onToggleFavorite={() => toggleFavorite(event.id)}
+              />
+            );
+          })()}
         </ScrollView>
       ) : (
         <View style={styles.centered}>

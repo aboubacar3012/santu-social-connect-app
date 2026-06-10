@@ -1,4 +1,4 @@
-import { toEventTypeUi } from '@/libs/event-type';
+import { mapEventFromApi } from '@/libs/event-api';
 import { formatApiErrorMessage } from '@/services/profil-edit.service';
 import type { EventItem, ListMyEventsApiResponse } from '@/types/event';
 
@@ -6,15 +6,6 @@ const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').re
   /\/+$/,
   '',
 );
-
-type EventItemWire = Omit<EventItem, 'type'> & { type: string };
-
-function mapEventFromApi(event: EventItemWire): EventItem {
-  return {
-    ...event,
-    type: toEventTypeUi(event.type),
-  };
-}
 
 /**
  * Récupère les événements publiés par l'utilisateur connecté (admin).
@@ -40,7 +31,7 @@ export async function listMyEventsApi(token: string): Promise<ListMyEventsApiRes
     throw new Error(formatApiErrorMessage(body, text || `Erreur ${res.status}`));
   }
 
-  const data = body as { events?: EventItemWire[] };
+  const data = body as { events?: Parameters<typeof mapEventFromApi>[0][] };
   if (!Array.isArray(data?.events)) {
     throw new Error('Réponse liste événements invalide.');
   }

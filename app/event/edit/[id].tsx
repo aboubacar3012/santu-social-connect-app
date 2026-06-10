@@ -15,6 +15,7 @@ import {
   buildUpdateEventPayloadFromForm,
   eventItemToFormData,
 } from '@/libs/event-form';
+import { deleteEventApi } from '@/services/event-delete.service';
 import { getEventByIdApi } from '@/services/event-detail.service';
 import { updateEventApi } from '@/services/event-update.service';
 import type { EventItem } from '@/types/event';
@@ -36,6 +37,7 @@ export default function EditEventScreen() {
   const [event, setEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchEvent = useCallback(async () => {
     if (!id) {
@@ -67,6 +69,39 @@ export default function EditEventScreen() {
     () => (event ? eventItemToFormData(event) : undefined),
     [event],
   );
+
+  const handleDelete = () => {
+    if (!event || !token || !id || deleting) return;
+
+    Alert.alert(
+      'Supprimer l\'événement',
+      `« ${event.title} » sera définitivement supprimé. Cette action est irréversible.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setDeleting(true);
+              try {
+                await deleteEventApi(token, id);
+                Alert.alert('Événement supprimé', 'L\'événement a été retiré.', [
+                  { text: 'OK', onPress: () => router.replace('/my-events') },
+                ]);
+              } catch (err: unknown) {
+                const message =
+                  err instanceof Error ? err.message : 'Impossible de supprimer cet événement.';
+                Alert.alert('Suppression', message);
+              } finally {
+                setDeleting(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
 
   const handleSubmit = async (data: EventFormData) => {
     if (!token || !id) {
@@ -122,13 +157,36 @@ export default function EditEventScreen() {
             </Pressable>
           </View>
         ) : initialForm ? (
-          <CreateEvent
-            key={id}
-            initial={initialForm}
-            submitLabel="Enregistrer les modifications"
-            resetOnSubmit={false}
-            onSubmit={handleSubmit}
-          />
+          <>
+            <CreateEvent
+              key={id}
+              initial={initialForm}
+              submitLabel="Enregistrer les modifications"
+              resetOnSubmit={false}
+              onSubmit={handleSubmit}
+            />
+            <Pressable
+              disabled={deleting}
+              onPress={handleDelete}
+              style={({ pressed }) => [
+                styles.deleteBtn,
+                {
+                  borderColor: '#E8212722',
+                  backgroundColor: isDark ? '#2A1214' : '#FFF5F5',
+                  opacity: pressed || deleting ? 0.85 : 1,
+                },
+              ]}
+            >
+              {deleting ? (
+                <ActivityIndicator color="#E82127" />
+              ) : (
+                <>
+                  <MaterialIcons name="delete-outline" size={20} color="#E82127" />
+                  <ThemedText style={styles.deleteBtnText}>Supprimer l&apos;événement</ThemedText>
+                </>
+              )}
+            </Pressable>
+          </>
         ) : null}
 
         <View style={styles.tabBarSpacer} />
@@ -158,5 +216,16 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 13, fontWeight: '500' },
   errorText: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
   retryText: { fontSize: 14, fontWeight: '700', color: '#0077B6' },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  deleteBtnText: { fontSize: 15, fontWeight: '700', color: '#E82127' },
   tabBarSpacer: { height: 32 },
 });

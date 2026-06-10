@@ -3,11 +3,16 @@ import { Image } from 'expo-image';
 import React from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
+import {
+  EVENT_ACCENT,
+  EventImagePlaceholder,
+  hasEventImage,
+} from '@/components/events/event-image-placeholder';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const ACCENT = '#0077B6';
+const ACCENT = EVENT_ACCENT;
 
 export type EventCardProps = {
   title: string;
@@ -45,6 +50,7 @@ export function EventCard({
   const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
   const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
   const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const showImage = hasEventImage(image);
 
   return (
     <Pressable
@@ -52,7 +58,11 @@ export function EventCard({
       style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}
     >
       <View style={styles.cardImageWrap}>
-        <Image source={{ uri: image }} style={styles.cardImage} contentFit="cover" />
+        {showImage ? (
+          <Image source={{ uri: image }} style={styles.cardImage} contentFit="cover" />
+        ) : (
+          <EventImagePlaceholder isDark={isDark} style={styles.cardImage} compact />
+        )}
         <View style={styles.cardImageOverlay}>
           <View style={[styles.typeBadge, { backgroundColor: 'rgba(255,255,255,0.92)' }]}>
             <ThemedText style={[styles.typeBadgeText, { color: ACCENT }]}>{typeLabel}</ThemedText>

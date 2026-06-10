@@ -1,4 +1,5 @@
-import { toEventTypeApi, toEventTypeUi } from "@/libs/event-type";
+import { mapEventFromApi } from "@/libs/event-api";
+import { toEventTypeApi } from "@/libs/event-type";
 import { formatApiErrorMessage } from "@/services/profil-edit.service";
 import type {
   CreateEventApiPayload,
@@ -10,15 +11,6 @@ const API_BASE = (process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000").re
   /\/+$/,
   "",
 );
-
-type EventItemWire = Omit<EventItem, "type"> & { type: string };
-
-function mapEventFromApi(event: EventItemWire): EventItem {
-  return {
-    ...event,
-    type: toEventTypeUi(event.type),
-  };
-}
 
 /**
  * Appelle l'API pour publier un événement (admin).
@@ -54,7 +46,7 @@ export async function createEventApi(
     );
   }
 
-  const data = body as { event?: EventItemWire };
+  const data = body as { event?: Parameters<typeof mapEventFromApi>[0] };
   if (!data?.event || typeof data.event !== "object") {
     throw new Error("Réponse création événement invalide.");
   }

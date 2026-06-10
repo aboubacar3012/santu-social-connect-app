@@ -1,4 +1,5 @@
-import { toEventTypeApi, toEventTypeUi } from '@/libs/event-type';
+import { mapEventFromApi } from '@/libs/event-api';
+import { toEventTypeApi } from '@/libs/event-type';
 import { formatApiErrorMessage } from '@/services/profil-edit.service';
 import type { EventItem, EventType, ListEventsApiResponse } from '@/types/event';
 
@@ -12,15 +13,6 @@ export type ListEventsQuery = {
   dateFrom?: string;
   dateTo?: string;
 };
-
-type EventItemWire = Omit<EventItem, 'type'> & { type: string };
-
-function mapEventFromApi(event: EventItemWire): EventItem {
-  return {
-    ...event,
-    type: toEventTypeUi(event.type),
-  };
-}
 
 /**
  * Récupère la liste des événements publiés.
@@ -53,7 +45,7 @@ export async function listEventsApi(
     throw new Error(formatApiErrorMessage(body, text || `Erreur ${res.status}`));
   }
 
-  const data = body as { events?: EventItemWire[] };
+  const data = body as { events?: Parameters<typeof mapEventFromApi>[0][] };
   if (!Array.isArray(data?.events)) {
     throw new Error('Réponse liste événements invalide.');
   }

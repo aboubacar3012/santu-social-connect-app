@@ -3,11 +3,16 @@ import { Image } from 'expo-image';
 import React from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
+import {
+  EVENT_ACCENT,
+  EventImagePlaceholder,
+  hasEventImage,
+} from '@/components/events/event-image-placeholder';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const ACCENT = '#0077B6';
+const ACCENT = EVENT_ACCENT;
 
 export type EventDetailProps = {
   title: string;
@@ -77,11 +82,22 @@ export function EventDetail({
   const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
   const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   const chipBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,119,182,0.06)';
+  const showImage = hasEventImage(image);
 
   return (
     <View style={[styles.root, { backgroundColor: pageBg }]}>
       <View style={styles.heroWrap}>
-        <Image source={{ uri: image }} style={styles.heroImage} contentFit="cover" contentPosition="center" transition={250} />
+        {showImage ? (
+          <Image
+            source={{ uri: image }}
+            style={styles.heroImage}
+            contentFit="cover"
+            contentPosition="center"
+            transition={250}
+          />
+        ) : (
+          <EventImagePlaceholder isDark={isDark} style={styles.heroImage} />
+        )}
         <View style={styles.heroOverlay} />
         <View style={styles.heroTopRow}>
           <View style={[styles.typeBadge, { backgroundColor: 'rgba(255,255,255,0.94)' }]}>
@@ -115,7 +131,7 @@ export function EventDetail({
               <MaterialIcons name="calendar-today" size={20} color={ACCENT} />
             </View>
             <View style={styles.dateBody}>
-              <ThemedText style={[styles.dateLabel, { color: theme.icon }]}>Date & heure</ThemedText>
+              <ThemedText style={[styles.dateLabel, { color: theme.icon }]}>Date & horaires</ThemedText>
               <ThemedText style={[styles.dateValue, { color: theme.text }]}>
                 {dateLabel} · {time}
               </ThemedText>

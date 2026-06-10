@@ -1,21 +1,18 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Redirect, useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
-import {
-  EVENT_TYPE_LABELS,
-  formatEventDate,
-  isEventPast,
-  type EventItem,
-} from '@/constants/mock-events';
+import { EVENT_TYPE_LABELS, type EventItem } from '@/constants/mock-events';
+import { formatEventSchedule, isEventPast } from '@/libs/event-schedule';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isUserAdmin } from '@/libs/auth';
+import { deleteEventApi } from '@/services/event-delete.service';
 import { listMyEventsApi } from '@/services/event-my-list.service';
 
 const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
@@ -37,6 +34,7 @@ export default function MyEventsScreen() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async () => {
     if (!token) {
@@ -65,6 +63,37 @@ export default function MyEventsScreen() {
       void fetchEvents();
     }, [fetchEvents]),
   );
+
+  const handleDelete = (event: EventItem) => {
+    if (!token || deletingId) return;
+
+    Alert.alert(
+      'Supprimer l\'événement',
+      `« ${event.title} » sera définitivement supprimé. Cette action est irréversible.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setDeletingId(event.id);
+              try {
+                await deleteEventApi(token, event.id);
+                setEvents((prev) => prev.filter((item) => item.id !== event.id));
+              } catch (err: unknown) {
+                const message =
+                  err instanceof Error ? err.message : 'Impossible de supprimer cet événement.';
+                Alert.alert('Suppression', message);
+              } finally {
+                setDeletingId(null);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
 
   if (!isUserAdmin(user)) {
     return <Redirect href="/(tabs)/profil" />;
@@ -133,6 +162,7 @@ export default function MyEventsScreen() {
           <View style={styles.list}>
             {events.map((event) => {
               const past = isEventPast(event);
+              const schedule = formatEventSchedule(event);
               return (
                 <View
                   key={event.id}
@@ -150,7 +180,7 @@ export default function MyEventsScreen() {
                     <View style={styles.metaRow}>
                       <MaterialIcons name="event" size={14} color={theme.icon} />
                       <ThemedText style={[styles.metaText, { color: theme.icon }]}>
-                        {formatEventDate(event.date)} · {event.time}
+                        {schedule.dateLabel} · {schedule.time}
                       </ThemedText>
                     </View>
                     <View style={styles.metaRow}>
@@ -193,6 +223,29 @@ export default function MyEventsScreen() {
                       <ThemedText style={[styles.actionChipText, { color: '#FFF' }]}>
                         Modifier
                       </ThemedText>
+                    </Pressable>
+                    <Pressable
+                      disabled={deletingId === event.id}
+                      onPress={() => handleDelete(event)}
+                      style={({ pressed }) => [
+                        styles.actionChip,
+                        styles.actionChipDanger,
+                        {
+                          backgroundColor: isDark ? '#2A1214' : '#FFF5F5',
+                          opacity: pressed || deletingId === event.id ? 0.85 : 1,
+                        },
+                      ]}
+                    >
+                      {deletingId === event.id ? (
+                        <ActivityIndicator color="#E82127" size="small" />
+                      ) : (
+                        <>
+                          <MaterialIcons name="delete-outline" size={16} color="#E82127" />
+                          <ThemedText style={[styles.actionChipText, { color: '#E82127' }]}>
+                            Supprimer
+                          </ThemedText>
+                        </>
+                      )}
                     </Pressable>
                   </View>
                 </View>
@@ -287,9 +340,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   pastBadgeText: { fontSize: 11, fontWeight: '600' },
-  eventActions: { flexDirection: 'row', gap: 8 },
+  eventActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   actionChip: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '30%',
+    minWidth: 96,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -298,6 +353,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   actionChipPrimary: {},
+  actionChipDanger: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E8212722',
+  },
   actionChipText: { fontSize: 13, fontWeight: '600' },
   tabBarSpacer: { height: 32 },
 });
