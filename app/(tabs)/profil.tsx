@@ -13,11 +13,7 @@ import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isUserAdmin } from '@/libs/auth';
-import {
-  isProfileVerified,
-  meToProfileFormData,
-  profileFormToUpdatePayload,
-} from '@/libs/profile-form';
+import { meToProfileFormData, profileFormToUpdatePayload } from '@/libs/profile-form';
 import { USER_ROLE_LABELS, type UserRoleApi } from '@/libs/profile-status';
 import { getProfileInitials } from '@/services/profil-view.service';
 import {
@@ -122,7 +118,6 @@ export default function ProfilScreen() {
 
   const email = profile.email || user?.email?.trim() || '—';
   const isAdmin = isUserAdmin(user);
-  const isVerified = me ? isProfileVerified(me) : false;
   const subscriptionLabel = me
     ? (USER_ROLE_LABELS[(me.role ?? 'freemium') as UserRoleApi] ?? me.role)
     : undefined;
@@ -252,7 +247,7 @@ export default function ProfilScreen() {
                 company={profile.company}
                 city={profile.city}
                 bio={profile.bio}
-                isVerified={isVerified}
+                onEditPress={() => setIsEditing(true)}
               />
             </View>
 
@@ -291,21 +286,6 @@ export default function ProfilScreen() {
             </View>
           </>
         )}
-
-        <View style={[styles.actionRow, { backgroundColor: cardBg, borderColor: divider }]}>
-          <Pressable
-            onPress={() => setIsEditing(true)}
-            disabled={loading}
-            style={styles.actionBtn}
-          >
-            <View style={[styles.actionIcon, { backgroundColor: chipBg }]}>
-              <MaterialIcons name="edit" size={18} color={ACCENT} />
-            </View>
-            <ThemedText style={[styles.actionLabel, { color: theme.text }]} numberOfLines={2}>
-              Modifier mon profil
-            </ThemedText>
-          </Pressable>
-        </View>
 
         {isAdmin ? (
           <View style={[styles.actionRow, { backgroundColor: cardBg, borderColor: divider }]}>

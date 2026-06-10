@@ -19,6 +19,13 @@ export type AuthUser = {
   phoneE164: string;
   email?: string | null;
   role?: UserRole;
+  firstName?: string | null;
+  lastName?: string | null;
+  jobTitle?: string | null;
+  company?: string | null;
+  city?: string | null;
+  profilePicture?: string | null;
+  onboardingStep?: number;
 };
 
 type AuthContextValue = {

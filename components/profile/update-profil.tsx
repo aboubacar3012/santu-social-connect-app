@@ -195,7 +195,7 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
               fieldBg={fieldBg}
               borderColor={divider}
             />
-            <IconTextField
+            {/* <IconTextField
               label="Quartier"
               value={quartier}
               onChangeText={setQuartier}
@@ -205,7 +205,7 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
               themeMuted={theme.icon}
               fieldBg={fieldBg}
               borderColor={divider}
-            />
+            /> */}
           </View>
 
           <View style={[styles.section, { backgroundColor: cardBg, borderColor: divider }]}>

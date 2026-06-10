@@ -1,9 +1,10 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { MemberCard } from '@/components/annuaire/member-card';
+import { IconTextField } from '@/components/publish/icon-text-field';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
@@ -43,12 +44,14 @@ export default function AnnuaireScreen() {
   const theme = Colors[colorScheme ?? 'light'];
   const router = useRouter();
 
+  const [query, setQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+
   const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
   const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const inputBg = isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF';
+  const fieldBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
   const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-
-  const [query, setQuery] = useState('');
+  const searchBorder = searchFocused ? ACCENT : divider;
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,27 +100,26 @@ export default function AnnuaireScreen() {
         <ThemedText style={[styles.kicker, { color: theme.icon }]}>RÉSEAU LOCAL</ThemedText>
         <ThemedText style={[styles.title, { color: theme.text }]}>Annuaire</ThemedText>
         <ThemedText style={[styles.subtitle, { color: theme.icon }]}>
-          Trouvez des entrepreneurs et partenaires à Marseille.
+          Trouvez votre futur collaborateur ou partenaire.
         </ThemedText>
       </View>
 
-      <View style={[styles.searchShell, { backgroundColor: inputBg, borderColor: divider }]}>
-        <MaterialIcons name="search" size={20} color={theme.icon} />
-        <TextInput
+      <View style={styles.searchWrap}>
+        <IconTextField
           value={query}
           onChangeText={setQuery}
-          placeholder="Nom, entreprise, quartier…"
-          placeholderTextColor={theme.icon}
-          style={[styles.searchInput, { color: theme.text }]}
+          placeholder="Retrouver un profil…"
+          icon="search"
+          themeText={theme.text}
+          themeMuted={theme.icon}
+          fieldBg={fieldBg}
+          borderColor={searchBorder}
+          clearable
           autoCapitalize="none"
-          autoCorrect={false}
           returnKeyType="search"
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
         />
-        {query.length > 0 ? (
-          <Pressable onPress={() => setQuery('')} hitSlop={10}>
-            <MaterialIcons name="close" size={18} color={theme.icon} />
-          </Pressable>
-        ) : null}
       </View>
 
       {error ? (
@@ -192,17 +194,9 @@ const styles = StyleSheet.create({
   kicker: { fontSize: 11, fontWeight: '700', letterSpacing: 2.2 },
   title: { fontSize: 32, fontWeight: '800', letterSpacing: -1.2, lineHeight: 38 },
   subtitle: { fontSize: 14, lineHeight: 20, marginTop: 4, maxWidth: 320 },
-  searchShell: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 14,
-    minHeight: 48,
+  searchWrap: {
     marginBottom: 14,
   },
-  searchInput: { flex: 1, fontSize: 15, fontWeight: '500', paddingVertical: 10 },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

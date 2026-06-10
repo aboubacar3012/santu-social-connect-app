@@ -14,10 +14,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { IconTextField } from '@/components/publish/icon-text-field';
 import { ThemedText } from '@/components/shared/themed-text';
+import UploadFile from '@/components/shared/upload-file';
 import type { AuthUser } from '@/hooks/use-auth';
 import { useAuth } from '@/hooks/use-auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { resolveProfileImageUri } from '@/libs/profile';
+import { updateProfileWithAvatarApi } from '@/services/profile.service';
 
 const ACCENT = '#0077B6';
 
@@ -50,8 +54,12 @@ const PALETTE = {
 
 const FR_COUNTRY_CODE = '+33';
 const FR_NATIONAL_LENGTH = 9;
+const DEFAULT_CITY = 'Marseille';
 
-const STEP_META = {
+const AUTH_STEPS = ['phone', 'otp', 'profile'] as const;
+type AuthStep = (typeof AUTH_STEPS)[number];
+
+const STEP_META: Record<AuthStep, { title: string; subtitle: string }> = {
   phone: {
     title: 'Bienvenue',
     subtitle: 'Entrez votre numéro pour recevoir un code de connexion par SMS.',
@@ -60,7 +68,17 @@ const STEP_META = {
     title: 'Vérifiez votre numéro',
     subtitle: 'Saisissez le code à 6 chiffres envoyé sur votre téléphone.',
   },
-} as const;
+  profile: {
+    title: 'Votre profil',
+    subtitle:
+      'Ajoutez une photo et quelques informations pour rejoindre le réseau entrepreneurial marseillais.',
+  },
+};
+
+type PendingAuth = {
+  accessToken: string;
+  user: AuthUser;
+};
 
 function normalizeFrenchPhone(raw: string): string {
   let digits = raw.replace(/\D/g, '');
@@ -88,6 +106,14 @@ function isValidFrenchPhone(e164: string): boolean {
   return /^\+33[1-9]\d{8}$/.test(e164);
 }
 
+function needsProfileSetup(user: AuthUser): boolean {
+  if ((user.onboardingStep ?? 0) >= 1) return false;
+  if (user.firstName?.trim() && user.lastName?.trim() && user.jobTitle?.trim()) {
+    return false;
+  }
+  return true;
+}
+
 export default function AuthScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -95,18 +121,25 @@ export default function AuthScreen() {
   const router = useRouter();
   const { isReady, isAuthenticated, signIn } = useAuth();
 
-  type AuthStep = 'phone' | 'otp';
-
   const [step, setStep] = useState<AuthStep>('phone');
   const [phoneE164, setPhoneE164] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+  const [company, setCompany] = useState('');
+  const [city, setCity] = useState(DEFAULT_CITY);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [pendingAuth, setPendingAuth] = useState<PendingAuth | null>(null);
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const t = isDark ? PALETTE.dark : PALETTE.light;
+  const fieldBg = t.canvas;
   const statusH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : insets.top;
-  const stepIndex = step === 'phone' ? 0 : 1;
+  const stepIndex = AUTH_STEPS.indexOf(step);
 
   const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL;
   if (!apiBaseUrl) {
@@ -118,6 +151,13 @@ export default function AuthScreen() {
 
   const canContinuePhone = phoneOk && !isRequestingOtp;
   const canSubmitOtp = otpOk && !isVerifyingOtp;
+  const canSubmitProfile =
+    Boolean(avatarUri?.trim()) &&
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    jobTitle.trim().length > 0 &&
+    city.trim().length > 0 &&
+    !isSavingProfile;
 
   const phoneDisplay = useMemo(() => formatFrenchPhoneDisplay(phoneE164), [phoneE164]);
   const phoneNationalInput = useMemo(() => formatFrenchNationalInput(phoneE164), [phoneE164]);
@@ -167,6 +207,20 @@ export default function AuthScreen() {
       if (!data?.accessToken || !data?.user) {
         throw new Error('Réponse invalide (token ou utilisateur manquant).');
       }
+
+      if (needsProfileSetup(data.user)) {
+        setPendingAuth({ accessToken: data.accessToken, user: data.user });
+        setFirstName(data.user.firstName?.trim() ?? '');
+        setLastName(data.user.lastName?.trim() ?? '');
+        setJobTitle(data.user.jobTitle?.trim() ?? '');
+        setCompany(data.user.company?.trim() ?? '');
+        setCity(data.user.city?.trim() || DEFAULT_CITY);
+        setAvatarUri(resolveProfileImageUri(data.user.profilePicture));
+        setAuthError(null);
+        setStep('profile');
+        return;
+      }
+
       await signIn(data.accessToken, data.user);
       setAuthError(null);
       router.replace('/(tabs)');
@@ -180,8 +234,53 @@ export default function AuthScreen() {
   const goBackToPhone = useCallback(() => {
     setStep('phone');
     setOtpCode('');
+    setPendingAuth(null);
     setAuthError(null);
   }, []);
+
+  const goBackToOtp = useCallback(() => {
+    setStep('otp');
+    setPendingAuth(null);
+    setAuthError(null);
+  }, []);
+
+  const onSubmitProfile = useCallback(async () => {
+    if (!canSubmitProfile || !pendingAuth) return;
+    setAuthError(null);
+    setIsSavingProfile(true);
+    try {
+      await updateProfileWithAvatarApi(
+        pendingAuth.accessToken,
+        {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          jobTitle: jobTitle.trim(),
+          company: company.trim() || null,
+          city: city.trim() || DEFAULT_CITY,
+          onboardingStep: 1,
+        },
+        avatarUri,
+      );
+      await signIn(pendingAuth.accessToken, pendingAuth.user);
+      setPendingAuth(null);
+      router.replace('/(tabs)');
+    } catch (e: unknown) {
+      setAuthError(e instanceof Error ? e.message : 'Impossible d’enregistrer votre profil.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }, [
+    avatarUri,
+    canSubmitProfile,
+    city,
+    company,
+    firstName,
+    jobTitle,
+    lastName,
+    pendingAuth,
+    router,
+    signIn,
+  ]);
 
   if (!isReady) {
     return null;
@@ -220,7 +319,7 @@ export default function AuthScreen() {
             <ThemedText style={[styles.subtitle, { color: t.muted }]}>{meta.subtitle}</ThemedText>
 
             <View style={styles.stepRow}>
-              {(['phone', 'otp'] as const).map((id, index) => (
+              {AUTH_STEPS.map((id, index) => (
                 <View
                   key={id}
                   style={[
@@ -237,7 +336,7 @@ export default function AuthScreen() {
           </View>
 
           <View style={[styles.card, { backgroundColor: t.card, borderColor: t.divider }]}>
-            {step === 'phone' ? (
+            {step === 'phone' && (
               <>
                 <View style={styles.fieldGroup}>
                   <ThemedText style={[styles.fieldLabel, { color: t.muted }]}>
@@ -300,7 +399,9 @@ export default function AuthScreen() {
                   )}
                 </Pressable>
               </>
-            ) : (
+            )}
+
+            {step === 'otp' && (
               <>
                 <Pressable onPress={goBackToPhone} hitSlop={12} style={styles.backRow}>
                   <MaterialIcons name="arrow-back" size={18} color={t.muted} />
@@ -383,6 +484,148 @@ export default function AuthScreen() {
                   <ThemedText style={[styles.resendText, { color: isRequestingOtp ? t.faint : ACCENT }]}>
                     {isRequestingOtp ? 'Renvoi en cours…' : 'Renvoyer le code'}
                   </ThemedText>
+                </Pressable>
+              </>
+            )}
+
+            {step === 'profile' && (
+              <>
+                <Pressable onPress={goBackToOtp} hitSlop={12} style={styles.backRow}>
+                  <MaterialIcons name="arrow-back" size={18} color={t.muted} />
+                  <ThemedText style={[styles.backText, { color: t.muted }]}>
+                    Retour au code
+                  </ThemedText>
+                </Pressable>
+
+                <UploadFile
+                  label="Photo de profil"
+                  value={avatarUri}
+                  onChange={(uri) => {
+                    setAvatarUri(uri);
+                    setAuthError(null);
+                  }}
+                  variant="avatar"
+                  hint="Ajoutez une photo pour apparaître dans l’annuaire"
+                  themeMuted={t.muted}
+                  fieldBg={fieldBg}
+                  borderColor={t.divider}
+                  tint={ACCENT}
+                  compact
+                />
+
+                <IconTextField
+                  label="Prénom"
+                  value={firstName}
+                  onChangeText={(txt) => {
+                    setFirstName(txt);
+                    setAuthError(null);
+                  }}
+                  placeholder="Votre prénom"
+                  icon="person"
+                  themeText={t.text}
+                  themeMuted={t.muted}
+                  fieldBg={fieldBg}
+                  borderColor={t.divider}
+                  autoCapitalize="words"
+                />
+                <IconTextField
+                  label="Nom"
+                  value={lastName}
+                  onChangeText={(txt) => {
+                    setLastName(txt);
+                    setAuthError(null);
+                  }}
+                  placeholder="Votre nom"
+                  icon="badge"
+                  themeText={t.text}
+                  themeMuted={t.muted}
+                  fieldBg={fieldBg}
+                  borderColor={t.divider}
+                  autoCapitalize="words"
+                />
+                <IconTextField
+                  label="Poste"
+                  value={jobTitle}
+                  onChangeText={(txt) => {
+                    setJobTitle(txt);
+                    setAuthError(null);
+                  }}
+                  placeholder="Ex. Fondateur, CEO…"
+                  icon="work"
+                  themeText={t.text}
+                  themeMuted={t.muted}
+                  fieldBg={fieldBg}
+                  borderColor={t.divider}
+                  autoCapitalize="words"
+                />
+                <IconTextField
+                  label="Entreprise ou société"
+                  value={company}
+                  onChangeText={(txt) => {
+                    setCompany(txt);
+                    setAuthError(null);
+                  }}
+                  placeholder="Nom de votre structure"
+                  icon="business"
+                  themeText={t.text}
+                  themeMuted={t.muted}
+                  fieldBg={fieldBg}
+                  borderColor={t.divider}
+                  autoCapitalize="words"
+                />
+                <IconTextField
+                  label="Ville"
+                  value={city}
+                  onChangeText={(txt) => {
+                    setCity(txt);
+                    setAuthError(null);
+                  }}
+                  placeholder={DEFAULT_CITY}
+                  icon="location-city"
+                  themeText={t.text}
+                  themeMuted={t.muted}
+                  fieldBg={fieldBg}
+                  borderColor={t.divider}
+                  autoCapitalize="words"
+                />
+
+                {authError ? (
+                  <View style={[styles.errorBanner, { backgroundColor: `${t.error}14` }]}>
+                    <MaterialIcons name="error-outline" size={16} color={t.error} />
+                    <ThemedText style={[styles.errorText, { color: t.error }]}>{authError}</ThemedText>
+                  </View>
+                ) : null}
+
+                <Pressable
+                  onPress={() => void onSubmitProfile()}
+                  disabled={!canSubmitProfile}
+                  style={({ pressed }) => [
+                    styles.primaryBtn,
+                    {
+                      backgroundColor: canSubmitProfile ? ACCENT : t.btnDisabled,
+                      opacity: pressed && canSubmitProfile ? 0.9 : 1,
+                    },
+                  ]}
+                >
+                  {isSavingProfile ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <ThemedText
+                        style={[
+                          styles.primaryBtnText,
+                          { color: canSubmitProfile ? '#FFFFFF' : t.btnDisabledText },
+                        ]}
+                      >
+                        Rejoindre le réseau
+                      </ThemedText>
+                      <MaterialIcons
+                        name="arrow-forward"
+                        size={18}
+                        color={canSubmitProfile ? '#FFFFFF' : t.btnDisabledText}
+                      />
+                    </>
+                  )}
                 </Pressable>
               </>
             )}

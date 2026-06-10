@@ -18,8 +18,7 @@ export type ProfileCardProps = {
   company: string;
   city: string;
   bio: string;
-  isVerified: boolean;
-  onVerifyPress?: () => void;
+  onEditPress?: () => void;
 };
 
 export function ProfileCard({
@@ -31,8 +30,7 @@ export function ProfileCard({
   company,
   city,
   bio,
-  isVerified,
-  onVerifyPress,
+  onEditPress,
 }: ProfileCardProps) {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
@@ -63,7 +61,6 @@ export function ProfileCard({
         <View style={styles.headerBody}>
           <View style={styles.nameRow}>
             <ThemedText style={[styles.name, { color: theme.text }]}>{name}</ThemedText>
-            {isVerified ? <MaterialIcons name="verified" size={20} color={ACCENT} /> : null}
           </View>
 
           <ThemedText style={[styles.jobLine, { color: theme.text }]}>
@@ -78,26 +75,27 @@ export function ProfileCard({
         </View>
       </View>
 
-      {!isVerified ? (
+      {onEditPress ? (
         <Pressable
-          onPress={onVerifyPress}
-          style={[styles.verifyBanner, { backgroundColor: `${ACCENT}12`, borderColor: `${ACCENT}33` }]}
+          onPress={onEditPress}
+          style={({ pressed }) => [
+            styles.editBanner,
+            { backgroundColor: `${ACCENT}12`, borderColor: `${ACCENT}33` },
+            pressed && { opacity: 0.85 },
+          ]}
         >
-          <MaterialIcons name="shield" size={18} color={ACCENT} />
-          <View style={styles.verifyBannerText}>
-            <ThemedText style={[styles.verifyBannerTitle, { color: theme.text }]}>Profil non vérifié</ThemedText>
-            <ThemedText style={[styles.verifyBannerHint, { color: theme.icon }]}>
-              Complétez votre profil pour gagner la confiance du réseau.
+          <MaterialIcons name="edit" size={18} color={ACCENT} />
+          <View style={styles.editBannerText}>
+            <ThemedText style={[styles.editBannerTitle, { color: theme.text }]}>
+              Modifier mon profil
+            </ThemedText>
+            <ThemedText style={[styles.editBannerHint, { color: theme.icon }]}>
+              Photo, poste, entreprise, bio…
             </ThemedText>
           </View>
           <MaterialIcons name="chevron-right" size={20} color={theme.icon} />
         </Pressable>
-      ) : (
-        <View style={[styles.verifyBanner, { backgroundColor: `${ACCENT}10`, borderColor: `${ACCENT}28` }]}>
-          <MaterialIcons name="verified-user" size={18} color={ACCENT} />
-          <ThemedText style={[styles.verifyBannerTitle, { color: ACCENT, flex: 1 }]}>Profil vérifié</ThemedText>
-        </View>
-      )}
+      ) : null}
 
       <ThemedText style={[styles.bio, { color: theme.icon }]}>{bio}</ThemedText>
     </View>
@@ -138,7 +136,7 @@ const styles = StyleSheet.create({
   jobLine: { fontSize: 14, fontWeight: '600', lineHeight: 20 },
   metaChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 },
   metaChipText: { fontSize: 12, fontWeight: '600' },
-  verifyBanner: {
+  editBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -146,8 +144,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  verifyBannerText: { flex: 1, gap: 2 },
-  verifyBannerTitle: { fontSize: 13, fontWeight: '700' },
-  verifyBannerHint: { fontSize: 12, lineHeight: 16, fontWeight: '500' },
+  editBannerText: { flex: 1, gap: 2 },
+  editBannerTitle: { fontSize: 13, fontWeight: '700' },
+  editBannerHint: { fontSize: 12, lineHeight: 16, fontWeight: '500' },
   bio: { fontSize: 14, lineHeight: 21, fontWeight: '400' },
 });

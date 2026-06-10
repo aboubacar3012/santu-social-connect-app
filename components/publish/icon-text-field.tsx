@@ -1,8 +1,25 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
 
 import { ThemedText } from '@/components/shared/themed-text';
+
+export type IconTextFieldProps = {
+  label?: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  icon: React.ComponentProps<typeof MaterialIcons>['name'];
+  themeText: string;
+  themeMuted: string;
+  fieldBg: string;
+  borderColor: string;
+  clearable?: boolean;
+  autoCapitalize?: TextInputProps['autoCapitalize'];
+  returnKeyType?: TextInputProps['returnKeyType'];
+  onFocus?: TextInputProps['onFocus'];
+  onBlur?: TextInputProps['onBlur'];
+};
 
 /**
  * Champ texte libre avec étiquette + cadre arrondi et icône Material à gauche.
@@ -19,20 +36,17 @@ export function IconTextField({
   themeMuted,
   fieldBg,
   borderColor,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder: string;
-  icon: React.ComponentProps<typeof MaterialIcons>['name'];
-  themeText: string;
-  themeMuted: string;
-  fieldBg: string;
-  borderColor: string;
-}) {
+  clearable = false,
+  autoCapitalize = 'words',
+  returnKeyType,
+  onFocus,
+  onBlur,
+}: IconTextFieldProps) {
   return (
     <View style={styles.fieldGroup}>
-      <ThemedText style={[styles.fieldLabel, { color: themeMuted }]}>{label}</ThemedText>
+      {label ? (
+        <ThemedText style={[styles.fieldLabel, { color: themeMuted }]}>{label}</ThemedText>
+      ) : null}
       <View style={[styles.inputShell, { backgroundColor: fieldBg, borderColor }]}>
         <MaterialIcons name={icon} size={16} color={themeMuted} style={styles.inputIcon} />
         <TextInput
@@ -41,8 +55,17 @@ export function IconTextField({
           placeholder={placeholder}
           placeholderTextColor={themeMuted}
           style={[styles.input, { color: themeText }]}
-          autoCapitalize="words"
+          autoCapitalize={autoCapitalize}
+          autoCorrect={false}
+          returnKeyType={returnKeyType}
+          onFocus={onFocus}
+          onBlur={onBlur}
         />
+        {clearable && value.length > 0 ? (
+          <Pressable onPress={() => onChangeText('')} hitSlop={8} style={styles.clearBtn}>
+            <MaterialIcons name="close" size={16} color={themeMuted} />
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -71,9 +94,14 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    minWidth: 0,
     fontSize: 14,
     fontWeight: '600',
     paddingVertical: 10,
     letterSpacing: -0.2,
+  },
+  clearBtn: {
+    marginLeft: 4,
+    padding: 2,
   },
 });
