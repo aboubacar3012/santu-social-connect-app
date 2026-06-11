@@ -6,7 +6,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { FAKE_THREAD_LIST, type ThreadListItem } from '@/constants/fake-threads';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 function initials(name: string): string {
   const p = name.replace(/&/g, ' ').split(/\s+/).filter(Boolean);
@@ -21,11 +20,9 @@ function previewLine(item: ThreadListItem): string {
 
 export default function MessagesScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const t = Colors[colorScheme ?? 'light'];
-  const isDark = colorScheme === 'dark';
-  const line = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
-  const avatarBg = isDark ? '#2C2C2E' : '#E5E5EA';
+  const t = Colors.light;
+  const line = 'rgba(0,0,0,0.07)';
+  const avatarBg = '#E5E5EA';
 
   return (
     <SafeScrollView screenBackgroundColor={t.background} keyboardAvoiding>
@@ -55,7 +52,7 @@ export default function MessagesScreen() {
                     styles.avatar,
                     styles.avatarBroadcast,
                     {
-                      backgroundColor: isDark ? '#1E2A32' : '#E8F4FC',
+                      backgroundColor: '#E8F4FC',
                       borderWidth: StyleSheet.hairlineWidth,
                       borderColor: t.tint,
                     },

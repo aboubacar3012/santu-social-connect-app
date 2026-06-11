@@ -19,7 +19,6 @@ import UploadFile from '@/components/shared/upload-file';
 import { ThemedText } from '@/components/shared/themed-text';
 import { EVENT_TYPE_LABELS, type EventType } from '@/constants/mock-events';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { startOfDay } from '@/libs/event-schedule';
 import {
   EVENT_STATUS_HINTS,
@@ -94,7 +93,6 @@ function ToggleRow({
   themeText,
   themeMuted,
   divider,
-  isDark,
 }: {
   label: string;
   hint: string;
@@ -103,7 +101,6 @@ function ToggleRow({
   themeText: string;
   themeMuted: string;
   divider: string;
-  isDark: boolean;
 }) {
   return (
     <View style={[styles.toggleRow, { borderBottomColor: divider }]}>
@@ -114,8 +111,8 @@ function ToggleRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: isDark ? '#3A3A3C' : '#D1D1D6', true: `${ACCENT}88` }}
-        thumbColor={value ? ACCENT : isDark ? '#F4F4F4' : '#FFFFFF'}
+        trackColor={{ false: '#D1D1D6', true: `${ACCENT}88` }}
+        thumbColor={value ? ACCENT : '#FFFFFF'}
       />
     </View>
   );
@@ -127,13 +124,11 @@ export function CreateEvent({
   submitLabel = "Publier l'événement",
   resetOnSubmit = true,
 }: CreateEventProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
 
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const fieldBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const cardBg = '#FFFFFF';
+  const fieldBg = 'rgba(0,0,0,0.04)';
+  const divider = 'rgba(0,0,0,0.06)';
 
   const [title, setTitle] = useState(initial?.title ?? '');
   const [type, setType] = useState<EventType>(initial?.type ?? 'Networking');
@@ -425,7 +420,6 @@ export function CreateEvent({
           themeText={theme.text}
           themeMuted={theme.icon}
           divider={divider}
-          isDark={isDark}
         />
         <ToggleRow
           label="Plusieurs jours"
@@ -435,7 +429,6 @@ export function CreateEvent({
           themeText={theme.text}
           themeMuted={theme.icon}
           divider={divider}
-          isDark={isDark}
         />
 
         <View style={styles.twoCols}>
@@ -621,7 +614,7 @@ export function CreateEvent({
                 mode={iosPickerMode}
                 display="spinner"
                 is24Hour
-                themeVariant={isDark ? 'dark' : 'light'}
+                themeVariant="light"
                 onChange={onIosPickerChange}
                 minimumDate={
                   iosPicker === 'endDate' && startDate ? startOfDay(startDate) : minDate

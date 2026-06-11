@@ -4,7 +4,6 @@ import { StyleSheet, Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const ACCENT = '#0077B6';
 
@@ -23,12 +22,10 @@ export function ProfileContactCard({
   isPublic,
   onTogglePublic,
 }: ProfileContactCardProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
 
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const cardBg = '#FFFFFF';
+  const divider = 'rgba(0,0,0,0.06)';
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>
@@ -63,8 +60,8 @@ export function ProfileContactCard({
         <Switch
           value={isPublic}
           onValueChange={onTogglePublic}
-          trackColor={{ false: isDark ? '#3A3A3C' : '#D1D1D6', true: `${ACCENT}88` }}
-          thumbColor={isPublic ? ACCENT : isDark ? '#F4F4F4' : '#FFFFFF'}
+          trackColor={{ false: '#D1D1D6', true: `${ACCENT}88` }}
+          thumbColor={isPublic ? ACCENT : '#FFFFFF'}
         />
       </View>
     </View>

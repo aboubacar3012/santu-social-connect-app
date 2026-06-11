@@ -9,7 +9,6 @@ import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isUserAdmin } from '@/libs/auth';
 import {
   buildUpdateEventPayloadFromForm,
@@ -20,19 +19,17 @@ import { getEventByIdApi } from '@/services/event-detail.service';
 import { updateEventApi } from '@/services/event-update.service';
 import type { EventItem } from '@/types/event';
 
-const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const PAGE_BG = '#F2F4F7';
 
 export default function EditEventScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
   const { user, token } = useAuth();
 
-  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const pageBg = PAGE_BG;
+  const divider = 'rgba(0,0,0,0.06)';
 
   const [event, setEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -172,7 +169,7 @@ export default function EditEventScreen() {
                 styles.deleteBtn,
                 {
                   borderColor: '#E8212722',
-                  backgroundColor: isDark ? '#2A1214' : '#FFF5F5',
+                  backgroundColor: '#FFF5F5',
                   opacity: pressed || deleting ? 0.85 : 1,
                 },
               ]}

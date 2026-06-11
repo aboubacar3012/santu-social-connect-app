@@ -4,7 +4,6 @@ import { StyleSheet, Switch, View } from 'react-native';
 
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   USER_STATUS_LABELS,
   canAppearInDirectory,
@@ -76,12 +75,10 @@ export function ProfileAccountSection({
   directoryVisible,
   onToggleDirectoryVisible,
 }: ProfileAccountSectionProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
 
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const cardBg = '#FFFFFF';
+  const divider = 'rgba(0,0,0,0.06)';
   const requirements = getDirectoryRequirements(me);
   const visibleInDirectory = canAppearInDirectory(me);
 
@@ -110,8 +107,8 @@ export function ProfileAccountSection({
         <Switch
           value={directoryVisible}
           onValueChange={onToggleDirectoryVisible}
-          trackColor={{ false: isDark ? '#3A3A3C' : '#D1D1D6', true: `${ACCENT}88` }}
-          thumbColor={directoryVisible ? ACCENT : isDark ? '#F4F4F4' : '#FFFFFF'}
+          trackColor={{ false: '#D1D1D6', true: `${ACCENT}88` }}
+          thumbColor={directoryVisible ? ACCENT : '#FFFFFF'}
         />
       </View>
 
@@ -124,9 +121,7 @@ export function ProfileAccountSection({
           {
             backgroundColor: visibleInDirectory
               ? `${OK}12`
-              : isDark
-                ? 'rgba(255,255,255,0.04)'
-                : 'rgba(0,0,0,0.03)',
+              : 'rgba(0,0,0,0.03)',
           },
         ]}
       >

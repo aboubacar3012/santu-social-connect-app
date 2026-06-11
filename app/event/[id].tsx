@@ -10,25 +10,22 @@ import { EVENT_TYPE_LABELS, type EventItem } from '@/constants/mock-events';
 import { formatEventSchedule, isEventPast } from '@/libs/event-schedule';
 import { Colors } from '@/constants/theme';
 import { useEventFavorites } from '@/contexts/event-favorites-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getEventByIdApi } from '@/services/event-detail.service';
 
-const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const PAGE_BG = '#F2F4F7';
 const ACCENT = '#0077B6';
 
 export default function EventModalScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-  const isDark = colorScheme === 'dark';
+  const theme = Colors.light;
   const { isFavorite, toggleFavorite } = useEventFavorites();
 
   const [event, setEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
+  const pageBg = PAGE_BG;
 
   const fetchEvent = useCallback(async () => {
     if (!id) {

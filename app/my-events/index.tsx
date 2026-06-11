@@ -10,26 +10,23 @@ import { EVENT_TYPE_LABELS, type EventItem } from '@/constants/mock-events';
 import { formatEventSchedule, isEventPast } from '@/libs/event-schedule';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isUserAdmin } from '@/libs/auth';
 import { deleteEventApi } from '@/services/event-delete.service';
 import { listMyEventsApi } from '@/services/event-my-list.service';
 
-const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const PAGE_BG = '#F2F4F7';
 const ACCENT = '#0077B6';
 
 export default function MyEventsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
   const { user, token } = useAuth();
 
-  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-  const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+  const pageBg = PAGE_BG;
+  const cardBg = '#FFFFFF';
+  const divider = 'rgba(0,0,0,0.06)';
+  const chipBg = 'rgba(0,0,0,0.05)';
 
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -231,7 +228,7 @@ export default function MyEventsScreen() {
                         styles.actionChip,
                         styles.actionChipDanger,
                         {
-                          backgroundColor: isDark ? '#2A1214' : '#FFF5F5',
+                          backgroundColor: '#FFF5F5',
                           opacity: pressed || deletingId === event.id ? 0.85 : 1,
                         },
                       ]}

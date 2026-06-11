@@ -17,7 +17,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ChatMessage, ThreadKind } from '@/constants/fake-threads';
 import { getMessagesForThread, getThreadById } from '@/constants/fake-threads';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 function normalizeId(raw: string | string[] | undefined): string {
   if (raw == null) return '';
@@ -129,9 +128,7 @@ export default function ConversationScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
-  const colorScheme = useColorScheme();
-  const t = Colors[colorScheme ?? 'light'];
-  const isDark = colorScheme === 'dark';
+  const t = Colors.light;
 
   const thread = getThreadById(id);
   const readOnlyKind: Extract<ThreadKind, 'official' | 'announcement'> | null =
@@ -145,8 +142,8 @@ export default function ConversationScreen() {
     const base = {
       headerBackTitle: 'Retour',
       headerShadowVisible: false,
-      headerStyle: { backgroundColor: isDark ? '#0D0D0F' : '#EDEFF2' },
-      headerTintColor: isDark ? '#ECEDEE' : '#11181C',
+      headerStyle: { backgroundColor: '#EDEFF2' },
+      headerTintColor: '#11181C',
       headerTitleAlign: 'center' as const,
     };
     if (thread?.subtitle) {
@@ -156,13 +153,13 @@ export default function ConversationScreen() {
         headerTitle: () => (
           <View style={headerTitleStyles.stack}>
             <Text
-              style={[headerTitleStyles.stackTitle, { color: isDark ? '#ECEDEE' : '#11181C' }]}
+              style={[headerTitleStyles.stackTitle, { color: '#11181C' }]}
               numberOfLines={1}
             >
               {thread.name}
             </Text>
             <Text
-              style={[headerTitleStyles.stackSub, { color: isDark ? '#9BA1A6' : '#687076' }]}
+              style={[headerTitleStyles.stackSub, { color: '#687076' }]}
               numberOfLines={1}
             >
               {thread.subtitle}
@@ -177,7 +174,7 @@ export default function ConversationScreen() {
         headerTitle: undefined,
       });
     }
-  }, [navigation, thread?.name, thread?.subtitle, isDark]);
+  }, [navigation, thread?.name, thread?.subtitle]);
 
   useEffect(() => {
     setMessages(getMessagesForThread(id));
@@ -202,13 +199,13 @@ export default function ConversationScreen() {
     ]);
   }, [draft, isReadOnlyFeed]);
 
-  const canvas = isDark ? '#0B0C0E' : '#ECEFF2';
-  const bubbleThem = isDark ? '#2A2D32' : '#FFFFFF';
-  const bubbleMe = isDark ? '#3D3518' : '#F5E9C8';
-  const borderInput = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
-  const officialHeroBg = isDark ? 'rgba(230,168,0,0.12)' : 'rgba(230,168,0,0.18)';
-  const announcementHeroBg = isDark ? 'rgba(96,165,250,0.14)' : 'rgba(59,130,246,0.12)';
-  const readOnlyFooterBg = isDark ? '#141416' : '#F0F0F0';
+  const canvas = '#ECEFF2';
+  const bubbleThem = '#FFFFFF';
+  const bubbleMe = '#F5E9C8';
+  const borderInput = 'rgba(0,0,0,0.08)';
+  const officialHeroBg = 'rgba(230,168,0,0.18)';
+  const announcementHeroBg = 'rgba(59,130,246,0.12)';
+  const readOnlyFooterBg = '#F0F0F0';
 
   if (!thread) {
     return (
@@ -313,7 +310,7 @@ export default function ConversationScreen() {
             disabled={!draft.trim()}
             style={({ pressed }) => [
               styles.sendBtn,
-              { backgroundColor: draft.trim() ? t.tint : isDark ? '#333' : '#ddd' },
+              { backgroundColor: draft.trim() ? t.tint : '#ddd' },
               pressed && draft.trim() && { opacity: 0.85 },
             ]}
           >

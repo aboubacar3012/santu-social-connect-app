@@ -7,20 +7,17 @@ import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isUserAdmin } from '@/libs/auth';
 import { buildCreateEventPayloadFromForm } from '@/libs/event-form';
 import { createEventApi } from '@/services/event-create.service';
 
-const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const PAGE_BG = '#F2F4F7';
 
 export default function PublishScreen() {
   const router = useRouter();
   const { user, token } = useAuth();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
-  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
+  const theme = Colors.light;
+  const pageBg = PAGE_BG;
 
   if (!isUserAdmin(user)) {
     return <Redirect href="/(tabs)/profil" />;

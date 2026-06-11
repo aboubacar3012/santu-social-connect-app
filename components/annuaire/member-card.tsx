@@ -5,7 +5,6 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const ACCENT = '#0077B6';
 const HERO_HEIGHT = 148;
@@ -29,14 +28,12 @@ export function MemberCard({
   quartier,
   onPress,
 }: MemberCardProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
 
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-  const shadow = isDark ? styles.cardShadowDark : styles.cardShadowLight;
+  const cardBg = '#FFFFFF';
+  const chipBg = 'rgba(0,0,0,0.05)';
+  const divider = 'rgba(0,0,0,0.06)';
+  const shadow = styles.cardShadowLight;
 
   return (
     <Pressable onPress={onPress} style={[styles.card, shadow, { backgroundColor: cardBg, borderColor: divider }]}>
@@ -84,13 +81,6 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
-  },
-  cardShadowDark: {
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
   },
   heroWrap: { position: 'relative' },
   heroImage: { width: '100%', height: '100%' },

@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "santu-connect",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
@@ -43,11 +43,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#F7F7F7",
-          "dark": {
-            "image": "./assets/images/splash-icon.png",
-            "backgroundColor": "#F7F7F7"
-          }
+          "backgroundColor": "#F7F7F7"
         }
       ],
       "@react-native-community/datetimepicker"

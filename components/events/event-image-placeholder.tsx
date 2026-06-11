@@ -9,13 +9,11 @@ export function hasEventImage(image: string): boolean {
 }
 
 type EventImagePlaceholderProps = {
-  isDark: boolean;
   style?: StyleProp<ViewStyle>;
   compact?: boolean;
 };
 
 export function EventImagePlaceholder({
-  isDark,
   style,
   compact = false,
 }: EventImagePlaceholderProps) {
@@ -24,7 +22,7 @@ export function EventImagePlaceholder({
       style={[
         styles.root,
         compact && styles.rootCompact,
-        { backgroundColor: isDark ? '#0A2E45' : EVENT_ACCENT },
+        { backgroundColor: EVENT_ACCENT },
         style,
       ]}
     >

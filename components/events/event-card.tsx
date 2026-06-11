@@ -10,7 +10,6 @@ import {
 } from '@/components/events/event-image-placeholder';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const ACCENT = EVENT_ACCENT;
 
@@ -43,13 +42,11 @@ export function EventCard({
   onToggleFavorite,
   onPress,
 }: EventCardProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
 
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const cardBg = '#FFFFFF';
+  const chipBg = 'rgba(0,0,0,0.05)';
+  const divider = 'rgba(0,0,0,0.06)';
   const showImage = hasEventImage(image);
 
   return (
@@ -61,7 +58,7 @@ export function EventCard({
         {showImage ? (
           <Image source={{ uri: image }} style={styles.cardImage} contentFit="cover" />
         ) : (
-          <EventImagePlaceholder isDark={isDark} style={styles.cardImage} compact />
+          <EventImagePlaceholder style={styles.cardImage} compact />
         )}
         <View style={styles.cardImageOverlay}>
           <View style={[styles.typeBadge, { backgroundColor: 'rgba(255,255,255,0.92)' }]}>

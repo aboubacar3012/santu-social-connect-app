@@ -7,26 +7,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MemberDetail } from '@/components/annuaire/member-detail';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { resolveProfileImageUri } from '@/libs/profile';
 import { getMemberByIdApi } from '@/services/member-detail.service';
 import type { Member } from '@/types/member';
 
-const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const PAGE_BG = '#F2F4F7';
 const ACCENT = '#0077B6';
 
 export default function MemberModalScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-  const isDark = colorScheme === 'dark';
+  const theme = Colors.light;
 
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
+  const pageBg = PAGE_BG;
 
   const fetchMember = useCallback(async () => {
     if (!id) {

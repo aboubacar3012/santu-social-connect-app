@@ -5,7 +5,6 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const ACCENT = '#0077B6';
 
@@ -32,11 +31,10 @@ export function ProfileCard({
   bio,
   onEditPress,
 }: ProfileCardProps) {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
 
-  const cardBg = colorScheme === 'dark' ? '#1A1A1E' : '#FFFFFF';
-  const divider = colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const cardBg = '#FFFFFF';
+  const divider = 'rgba(0,0,0,0.06)';
 
   return (
     <View style={[styles.card, { backgroundColor: cardBg, borderColor: divider }]}>

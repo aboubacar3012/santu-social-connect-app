@@ -10,7 +10,6 @@ import {
 } from '@/components/events/event-image-placeholder';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const ACCENT = EVENT_ACCENT;
 
@@ -74,14 +73,12 @@ export function EventDetail({
   isPast,
   onToggleFavorite,
 }: EventDetailProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
 
-  const pageBg = isDark ? '#0A0A0C' : '#F2F4F7';
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-  const chipBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,119,182,0.06)';
+  const pageBg = '#F2F4F7';
+  const cardBg = '#FFFFFF';
+  const divider = 'rgba(0,0,0,0.06)';
+  const chipBg = 'rgba(0,119,182,0.06)';
   const showImage = hasEventImage(image);
 
   return (
@@ -96,7 +93,7 @@ export function EventDetail({
             transition={250}
           />
         ) : (
-          <EventImagePlaceholder isDark={isDark} style={styles.heroImage} />
+          <EventImagePlaceholder style={styles.heroImage} />
         )}
         <View style={styles.heroOverlay} />
         <View style={styles.heroTopRow}>

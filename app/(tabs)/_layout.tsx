@@ -5,14 +5,10 @@ import React from 'react';
 import { HapticTab } from '@/components/shared/haptic-tab';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
 const ACCENT = '#0077B6';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const { isReady, isAuthenticated } = useAuth();
-  const scheme = colorScheme ?? 'light';
 
   if (!isReady) {
     return null;
@@ -25,7 +21,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: ACCENT,
-        tabBarInactiveTintColor: Colors[scheme].tabIconDefault,
+        tabBarInactiveTintColor: Colors.light.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
@@ -38,7 +34,7 @@ export default function TabLayout() {
           height: 64,
           paddingBottom: 10,
           paddingTop: 10,
-          backgroundColor: Colors[scheme].background,
+          backgroundColor: Colors.light.background,
           shadowColor: '#000',
           shadowOpacity: 0.1,
           shadowRadius: 12,

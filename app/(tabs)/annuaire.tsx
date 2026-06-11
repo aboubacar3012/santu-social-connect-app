@@ -8,12 +8,11 @@ import { IconTextField } from '@/components/publish/icon-text-field';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { resolveProfileImageUri } from '@/libs/profile';
 import { listMembersApi } from '@/services/member-list.service';
 import type { Member } from '@/types/member';
 
-const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const PAGE_BG = '#F2F4F7';
 const ACCENT = '#0077B6';
 const DEFAULT_AVATAR =
   'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80';
@@ -39,18 +38,16 @@ function memberAvatarUri(avatar: string): string {
 }
 
 export default function AnnuaireScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
   const router = useRouter();
 
   const [query, setQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
 
-  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const fieldBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const pageBg = PAGE_BG;
+  const cardBg = '#FFFFFF';
+  const fieldBg = 'rgba(0,0,0,0.04)';
+  const divider = 'rgba(0,0,0,0.06)';
   const searchBorder = searchFocused ? ACCENT : divider;
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);

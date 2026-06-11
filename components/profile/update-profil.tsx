@@ -18,10 +18,9 @@ import { IconTextField } from '@/components/publish/icon-text-field';
 import UploadFile from '@/components/shared/upload-file';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const ACCENT = '#0077B6';
-const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const PAGE_BG = '#F2F4F7';
 
 export type ProfileFormData = {
   name: string;
@@ -46,15 +45,13 @@ export type UpdateProfilProps = {
 };
 
 export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: UpdateProfilProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
   const insets = useSafeAreaInsets();
 
-  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const fieldBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const pageBg = PAGE_BG;
+  const cardBg = '#FFFFFF';
+  const fieldBg = 'rgba(0,0,0,0.04)';
+  const divider = 'rgba(0,0,0,0.06)';
 
   const [name, setName] = useState(initial.name);
   const [jobTitle, setJobTitle] = useState(initial.jobTitle);
@@ -221,7 +218,6 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
               themeText={theme.text}
               themeMuted={theme.icon}
               divider={divider}
-              isDark={isDark}
             />
             <ToggleRow
               label="E-mail visible"
@@ -231,7 +227,6 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
               themeText={theme.text}
               themeMuted={theme.icon}
               divider={divider}
-              isDark={isDark}
             />
             <ToggleRow
               label="Téléphone visible"
@@ -241,7 +236,6 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
               themeText={theme.text}
               themeMuted={theme.icon}
               divider={divider}
-              isDark={isDark}
             />
           </View>
 
@@ -304,7 +298,6 @@ type ToggleRowProps = {
   themeText: string;
   themeMuted: string;
   divider: string;
-  isDark: boolean;
 };
 
 function ToggleRow({
@@ -315,7 +308,6 @@ function ToggleRow({
   themeText,
   themeMuted,
   divider,
-  isDark,
 }: ToggleRowProps) {
   return (
     <View style={[toggleStyles.row, { borderBottomColor: divider }]}>
@@ -326,8 +318,8 @@ function ToggleRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: isDark ? '#3A3A3C' : '#D1D1D6', true: `${ACCENT}88` }}
-        thumbColor={value ? ACCENT : isDark ? '#F4F4F4' : '#FFFFFF'}
+        trackColor={{ false: '#D1D1D6', true: `${ACCENT}88` }}
+        thumbColor={value ? ACCENT : '#FFFFFF'}
       />
     </View>
   );

@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -8,7 +8,6 @@ import 'react-native-reanimated';
 import { Colors } from '@/constants/theme';
 import { AuthProvider } from '@/contexts/auth-context';
 import { EventFavoritesProvider } from '@/contexts/event-favorites-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /** Largeur max type tablette (iPad) — l’app reste centrée sur desktop / grands écrans. */
 const TABLET_MAX_WIDTH = 768;
@@ -20,14 +19,12 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-  const shellBg = colorScheme === 'dark' ? '#050506' : '#D8DCE3';
+  const theme = Colors.light;
 
   return (
-    <View style={[styles.shell, { backgroundColor: shellBg }]}>
+    <View style={[styles.shell, { backgroundColor: '#D8DCE3' }]}>
       <View style={[styles.frame, { backgroundColor: theme.background }]}>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemeProvider value={DefaultTheme}>
           <AuthProvider>
             <EventFavoritesProvider>
               <Stack>
@@ -72,15 +69,15 @@ export default function RootLayout() {
                     headerBackTitle: 'Retour',
                     headerShadowVisible: false,
                     headerStyle: {
-                      backgroundColor: colorScheme === 'dark' ? '#0D0D0F' : '#EDEFF2',
+                      backgroundColor: '#EDEFF2',
                     },
-                    headerTintColor: colorScheme === 'dark' ? '#ECEDEE' : '#11181C',
+                    headerTintColor: '#11181C',
                     headerTitleStyle: { fontWeight: '700', fontSize: 17 },
                   }}
                 />
               </Stack>
             </EventFavoritesProvider>
-            <StatusBar style="auto" />
+            <StatusBar style="dark" />
           </AuthProvider>
         </ThemeProvider>
       </View>

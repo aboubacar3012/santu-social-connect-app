@@ -6,7 +6,6 @@ import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/shared/themed-text';
 import type { Member } from '@/constants/mock-members';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const ACCENT = '#0077B6';
 const AVATAR_SIZE = 116;
@@ -80,15 +79,13 @@ function ContactAction({
 }
 
 export function MemberDetail({ member }: MemberDetailProps) {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'light'];
-  const isDark = colorScheme === 'dark';
+  const theme = Colors.light;
 
-  const pageBg = isDark ? '#0A0A0C' : '#F2F4F7';
-  const bannerBg = isDark ? '#1C1C22' : '#E2E6EB';
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-  const chipBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,119,182,0.06)';
+  const pageBg = '#F2F4F7';
+  const bannerBg = '#E2E6EB';
+  const cardBg = '#FFFFFF';
+  const divider = 'rgba(0,0,0,0.06)';
+  const chipBg = 'rgba(0,119,182,0.06)';
   const location = `${member.quartier} · ${member.city}`;
   const hasContact = Boolean(member.email || member.phone);
 

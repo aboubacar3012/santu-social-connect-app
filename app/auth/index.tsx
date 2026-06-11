@@ -19,37 +19,22 @@ import { ThemedText } from '@/components/shared/themed-text';
 import UploadFile from '@/components/shared/upload-file';
 import type { AuthUser } from '@/hooks/use-auth';
 import { useAuth } from '@/hooks/use-auth';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { resolveProfileImageUri } from '@/libs/profile';
 import { updateProfileWithAvatarApi } from '@/services/profile.service';
 
 const ACCENT = '#0077B6';
 
 const PALETTE = {
-  light: {
-    canvas: '#F2F4F7',
-    card: '#FFFFFF',
-    text: '#11181C',
-    muted: '#687076',
-    faint: '#9BA1A6',
-    divider: 'rgba(0,0,0,0.06)',
-    chip: 'rgba(0,119,182,0.08)',
-    btnDisabled: '#D8DCE3',
-    btnDisabledText: '#9BA1A6',
-    error: '#E82127',
-  },
-  dark: {
-    canvas: '#0A0A0C',
-    card: '#1A1A1E',
-    text: '#ECEDEE',
-    muted: '#9BA1A6',
-    faint: '#6B7280',
-    divider: 'rgba(255,255,255,0.08)',
-    chip: 'rgba(0,119,182,0.18)',
-    btnDisabled: '#2A2A30',
-    btnDisabledText: '#6B7280',
-    error: '#FF6B6B',
-  },
+  canvas: '#F2F4F7',
+  card: '#FFFFFF',
+  text: '#11181C',
+  muted: '#687076',
+  faint: '#9BA1A6',
+  divider: 'rgba(0,0,0,0.06)',
+  chip: 'rgba(0,119,182,0.08)',
+  btnDisabled: '#D8DCE3',
+  btnDisabledText: '#9BA1A6',
+  error: '#E82127',
 } as const;
 
 const FR_COUNTRY_CODE = '+33';
@@ -115,8 +100,6 @@ function needsProfileSetup(user: AuthUser): boolean {
 }
 
 export default function AuthScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { isReady, isAuthenticated, signIn } = useAuth();
@@ -136,7 +119,7 @@ export default function AuthScreen() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const t = isDark ? PALETTE.dark : PALETTE.light;
+  const t = PALETTE;
   const fieldBg = t.canvas;
   const statusH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : insets.top;
   const stepIndex = AUTH_STEPS.indexOf(step);
@@ -294,7 +277,7 @@ export default function AuthScreen() {
       <StatusBar
         translucent
         backgroundColor="transparent"
-        barStyle={isDark ? 'light-content' : 'dark-content'}
+        barStyle="dark-content"
       />
 
       <KeyboardAvoidingView
@@ -326,7 +309,7 @@ export default function AuthScreen() {
                     styles.stepDot,
                     {
                       backgroundColor:
-                        index <= stepIndex ? ACCENT : isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                        index <= stepIndex ? ACCENT : 'rgba(0,0,0,0.08)',
                       flex: index <= stepIndex ? 1.4 : 1,
                     },
                   ]}

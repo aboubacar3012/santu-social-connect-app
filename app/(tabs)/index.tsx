@@ -18,11 +18,10 @@ import {
 } from '@/libs/event-schedule';
 import { Colors } from '@/constants/theme';
 import { useEventFavorites } from '@/contexts/event-favorites-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { listEventsApi } from '@/services/event-list.service';
 
 const ACCENT = '#0077B6';
-const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const PAGE_BG = '#F2F4F7';
 
 type DateFilter = 'upcoming' | 'this_week' | 'this_month' | 'past';
 type DateSort = 'soonest' | 'recent';
@@ -184,14 +183,12 @@ function matchesDateFilter(event: EventItem, filter: DateFilter, now: Date): boo
 
 export default function EventsScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
   const { isFavorite, toggleFavorite } = useEventFavorites();
 
-  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const pageBg = PAGE_BG;
+  const cardBg = '#FFFFFF';
+  const divider = 'rgba(0,0,0,0.06)';
 
   const [typeFilter, setTypeFilter] = useState<EventType | 'All'>('All');
   const [dateFilter, setDateFilter] = useState<DateFilter>('upcoming');

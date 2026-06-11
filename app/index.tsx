@@ -14,10 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/shared/themed-text';
 import { useAuth } from '@/hooks/use-auth';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const ACCENT = '#0077B6';
-const ACCENT_SOFT = '#00A8E8';
 
 const STEPS = [
   {
@@ -42,9 +40,7 @@ const STEPS = [
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const scheme = useColorScheme();
   const { isReady, isAuthenticated } = useAuth();
-  const dark = scheme === 'dark';
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState(0);
@@ -58,37 +54,21 @@ export default function WelcomeScreen() {
   const cur = STEPS[step];
   const isLast = step === STEPS.length - 1;
 
-  const t = dark
-    ? {
-        canvas: '#07080A',
-        sheet: '#141418',
-        text: '#F4F6F8',
-        muted: '#A2A8B0',
-        faint: '#6B7280',
-        divider: 'rgba(255,255,255,0.08)',
-        blobA: 'rgba(0,119,182,0.22)',
-        blobB: 'rgba(0,168,232,0.12)',
-        ring: 'rgba(0,119,182,0.35)',
-        ringOuter: 'rgba(0,119,182,0.12)',
-        chip: 'rgba(0,119,182,0.2)',
-        progressTrack: 'rgba(255,255,255,0.1)',
-        btnShadow: 'rgba(0,119,182,0.45)',
-      }
-    : {
-        canvas: '#EEF2F6',
-        sheet: '#FFFFFF',
-        text: '#0D1B2A',
-        muted: '#5C6B7A',
-        faint: '#8A97A6',
-        divider: 'rgba(0,0,0,0.06)',
-        blobA: 'rgba(0,119,182,0.14)',
-        blobB: 'rgba(0,168,232,0.1)',
-        ring: 'rgba(0,119,182,0.28)',
-        ringOuter: 'rgba(0,119,182,0.1)',
-        chip: 'rgba(0,119,182,0.1)',
-        progressTrack: 'rgba(0,0,0,0.07)',
-        btnShadow: 'rgba(0,119,182,0.28)',
-      };
+  const t = {
+    canvas: '#EEF2F6',
+    sheet: '#FFFFFF',
+    text: '#0D1B2A',
+    muted: '#5C6B7A',
+    faint: '#8A97A6',
+    divider: 'rgba(0,0,0,0.06)',
+    blobA: 'rgba(0,119,182,0.14)',
+    blobB: 'rgba(0,168,232,0.1)',
+    ring: 'rgba(0,119,182,0.28)',
+    ringOuter: 'rgba(0,119,182,0.1)',
+    chip: 'rgba(0,119,182,0.1)',
+    progressTrack: 'rgba(0,0,0,0.07)',
+    btnShadow: 'rgba(0,119,182,0.28)',
+  };
 
   const statusH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : insets.top;
   const barW = barWidth.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
@@ -153,7 +133,7 @@ export default function WelcomeScreen() {
       <StatusBar
         translucent
         backgroundColor="transparent"
-        barStyle={dark ? 'light-content' : 'dark-content'}
+        barStyle="dark-content"
       />
 
       <View style={[styles.blob, styles.blobTop, { backgroundColor: t.blobA }]} />
@@ -161,16 +141,16 @@ export default function WelcomeScreen() {
 
       <View style={[styles.header, { paddingTop: statusH + 14 }]}>
         <View style={styles.brandBlock}>
-          <ThemedText lightColor={ACCENT} darkColor={ACCENT_SOFT} style={styles.brandKicker}>
+          <ThemedText style={[styles.brandKicker, { color: ACCENT }]}>
             SANTU CONNECT
           </ThemedText>
-          <ThemedText lightColor="#8A97A6" darkColor="#6B7280" style={styles.brandSub}>
+          <ThemedText style={[styles.brandSub, { color: '#8A97A6' }]}>
             Marseille
           </ThemedText>
         </View>
         {!isLast ? (
           <Pressable onPress={goAuth} hitSlop={12} style={[styles.skipPill, { borderColor: t.divider }]}>
-            <ThemedText lightColor="#687076" darkColor="#9BA1A6" style={styles.skipText}>
+            <ThemedText style={[styles.skipText, { color: '#687076' }]}>
               Passer
             </ThemedText>
           </Pressable>
@@ -195,14 +175,14 @@ export default function WelcomeScreen() {
           ]}
         >
           <View style={[styles.stepPill, { backgroundColor: t.chip }]}>
-            <ThemedText lightColor={ACCENT} darkColor={ACCENT_SOFT} style={styles.stepPillText}>
+            <ThemedText style={[styles.stepPillText, { color: ACCENT }]}>
               {cur.label}
             </ThemedText>
           </View>
-          <ThemedText lightColor="#0D1B2A" darkColor="#F4F6F8" style={styles.title}>
+          <ThemedText style={[styles.title, { color: '#0D1B2A' }]}>
             {cur.title}
           </ThemedText>
-          <ThemedText lightColor="#5C6B7A" darkColor="#A2A8B0" style={styles.body}>
+          <ThemedText style={[styles.body, { color: '#5C6B7A' }]}>
             {cur.body}
           </ThemedText>
         </Animated.View>
@@ -222,7 +202,7 @@ export default function WelcomeScreen() {
           <View style={[styles.progressTrack, { backgroundColor: t.progressTrack }]}>
             <Animated.View style={[styles.progressFill, { width: barW }]} />
           </View>
-          <ThemedText lightColor="#8A97A6" darkColor="#6B7280" style={styles.stepCounter}>
+          <ThemedText style={[styles.stepCounter, { color: '#8A97A6' }]}>
             {step + 1}/{STEPS.length}
           </ThemedText>
         </View>
@@ -243,9 +223,11 @@ export default function WelcomeScreen() {
                 ]}
               >
                 <ThemedText
-                  lightColor={active ? ACCENT : '#8A97A6'}
-                  darkColor={active ? ACCENT_SOFT : '#6B7280'}
-                  style={[styles.stepTabText, active && styles.stepTabTextActive]}
+                  style={[
+                    styles.stepTabText,
+                    active && styles.stepTabTextActive,
+                    { color: active ? ACCENT : '#8A97A6' },
+                  ]}
                 >
                   {item.label}
                 </ThemedText>
@@ -265,14 +247,14 @@ export default function WelcomeScreen() {
             },
           ]}
         >
-          <ThemedText lightColor="#FFFFFF" darkColor="#FFFFFF" style={styles.primaryBtnText}>
+          <ThemedText style={[styles.primaryBtnText, { color: '#FFFFFF' }]}>
             {isLast ? 'Rejoindre le réseau' : 'Continuer'}
           </ThemedText>
           <MaterialIcons name={isLast ? 'arrow-forward' : 'east'} size={20} color="#FFFFFF" />
         </Pressable>
 
         <Pressable onPress={goAuth} style={styles.secondaryBtn}>
-          <ThemedText lightColor="#687076" darkColor="#9BA1A6" style={styles.secondaryBtnText}>
+          <ThemedText style={[styles.secondaryBtnText, { color: '#687076' }]}>
             J&apos;ai déjà un compte
           </ThemedText>
         </Pressable>

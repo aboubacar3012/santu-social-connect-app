@@ -11,7 +11,6 @@ import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isUserAdmin } from '@/libs/auth';
 import { meToProfileFormData, profileFormToUpdatePayload } from '@/libs/profile-form';
 import { USER_ROLE_LABELS, type UserRoleApi } from '@/libs/profile-status';
@@ -24,7 +23,7 @@ import {
 import type { MeApiUser } from '@/types/profile';
 
 const ACCENT = '#0077B6';
-const PAGE_BG = { light: '#F2F4F7', dark: '#0A0A0C' } as const;
+const PAGE_BG = '#F2F4F7';
 
 const EMPTY_PROFILE: ProfileFormData = {
   name: '',
@@ -49,9 +48,7 @@ function formatPhoneE164(e164: string): string {
 }
 
 export default function ProfilScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = Colors[colorScheme ?? 'light'];
+  const theme = Colors.light;
   const router = useRouter();
   const { signOut, user, token, isReady } = useAuth();
 
@@ -63,10 +60,10 @@ export default function ProfilScreen() {
   const [showEmailPublic, setShowEmailPublic] = useState(false);
   const [directoryVisible, setDirectoryVisible] = useState(false);
 
-  const pageBg = isDark ? PAGE_BG.dark : PAGE_BG.light;
-  const cardBg = isDark ? '#1A1A1E' : '#FFFFFF';
-  const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
-  const divider = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const pageBg = PAGE_BG;
+  const cardBg = '#FFFFFF';
+  const chipBg = 'rgba(0,0,0,0.05)';
+  const divider = 'rgba(0,0,0,0.06)';
 
   const applyMe = useCallback((next: MeApiUser) => {
     setMe(next);
