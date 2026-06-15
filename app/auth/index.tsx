@@ -160,6 +160,30 @@ export default function AuthScreen() {
         const txt = await res.text().catch(() => '');
         throw new Error(txt || `Erreur (${res.status})`);
       }
+      const data = (await res.json().catch(() => ({}))) as {
+        accessToken?: string;
+        user?: AuthUser;
+      };
+      if (data?.accessToken && data?.user) {
+        if (needsProfileSetup(data.user)) {
+          setPendingAuth({ accessToken: data.accessToken, user: data.user });
+          setFirstName(data.user.firstName?.trim() ?? '');
+          setLastName(data.user.lastName?.trim() ?? '');
+          setJobTitle(data.user.jobTitle?.trim() ?? '');
+          setCompany(data.user.company?.trim() ?? '');
+          setCity(data.user.city?.trim() || DEFAULT_CITY);
+          setAvatarUri(resolveProfileImageUri(data.user.profilePicture));
+          setAuthError(null);
+          setStep('profile');
+          return;
+        }
+
+        await signIn(data.accessToken, data.user);
+        setAuthError(null);
+        router.replace('/(tabs)');
+        return;
+      }
+
       setOtpCode('');
       setStep('otp');
     } catch (e: unknown) {
@@ -167,7 +191,7 @@ export default function AuthScreen() {
     } finally {
       setIsRequestingOtp(false);
     }
-  }, [apiBaseUrl, phoneE164, phoneOk, isRequestingOtp]);
+  }, [apiBaseUrl, phoneE164, phoneOk, isRequestingOtp, router, signIn]);
 
   const onSubmitOtp = useCallback(async () => {
     if (!otpOk || isVerifyingOtp) return;

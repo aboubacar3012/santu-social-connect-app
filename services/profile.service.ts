@@ -17,6 +17,10 @@ export type UpdateMeApiResponse = {
   user: MeApiUser;
 };
 
+export type DeleteAccountApiResponse = {
+  success: true;
+};
+
 export type UpdateProfileApiPayload = Record<string, unknown>;
 
 async function parseJsonResponse(res: Response): Promise<unknown> {
@@ -101,4 +105,29 @@ export async function updateProfileWithAvatarApi(
   }
 
   return updateProfileApi(token, nextPayload);
+}
+
+/**
+ * Supprime le compte utilisateur (suppression logique côté API).
+ */
+export async function deleteAccountApi(token: string): Promise<DeleteAccountApiResponse> {
+  const res = await fetch(`${API_BASE}/users/me`, {
+    method: 'DELETE',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const body = await parseJsonResponse(res);
+  if (!res.ok) {
+    throw new Error(formatApiErrorMessage(body, `Erreur ${res.status}`));
+  }
+
+  const data = body as Partial<DeleteAccountApiResponse>;
+  if (!data?.success) {
+    throw new Error('Réponse suppression de compte invalide.');
+  }
+
+  return data as DeleteAccountApiResponse;
 }

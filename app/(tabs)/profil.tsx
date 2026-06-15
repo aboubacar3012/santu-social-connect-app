@@ -16,6 +16,7 @@ import { meToProfileFormData, profileFormToUpdatePayload } from '@/libs/profile-
 import { USER_ROLE_LABELS, type UserRoleApi } from '@/libs/profile-status';
 import { getProfileInitials } from '@/services/profil-view.service';
 import {
+  deleteAccountApi,
   getMeApi,
   updateProfileApi,
   updateProfileWithAvatarApi,
@@ -56,6 +57,7 @@ export default function ProfilScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showPhonePublic, setShowPhonePublic] = useState(false);
   const [showEmailPublic, setShowEmailPublic] = useState(false);
   const [directoryVisible, setDirectoryVisible] = useState(false);
@@ -207,6 +209,39 @@ export default function ProfilScreen() {
     router.replace('/auth');
   };
 
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      'Supprimer mon compte',
+      'Cette action est définitive. Vos données personnelles seront effacées et votre profil sera retiré de l’annuaire.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => void handleDeleteAccount(),
+        },
+      ],
+    );
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!token || isDeleting) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteAccountApi(token);
+      await signOut();
+      router.replace('/auth');
+    } catch (err: unknown) {
+      Alert.alert(
+        'Suppression du compte',
+        err instanceof Error ? err.message : 'Impossible de supprimer le compte.',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <>
       <SafeScrollView screenBackgroundColor={pageBg}>
@@ -314,6 +349,25 @@ export default function ProfilScreen() {
           <ThemedText style={styles.logoutText}>Se déconnecter</ThemedText>
         </Pressable>
 
+        <Pressable
+          onPress={confirmDeleteAccount}
+          disabled={isDeleting || loading}
+          style={[
+            styles.deleteBtn,
+            { borderColor: 'rgba(232, 33, 39, 0.25)', backgroundColor: 'rgba(232, 33, 39, 0.06)' },
+            (isDeleting || loading) && styles.deleteBtnDisabled,
+          ]}
+        >
+          {isDeleting ? (
+            <ActivityIndicator color="#E82127" size="small" />
+          ) : (
+            <MaterialIcons name="delete-forever" size={18} color="#E82127" />
+          )}
+          <ThemedText style={styles.deleteText}>
+            {isDeleting ? 'Suppression…' : 'Supprimer mon compte'}
+          </ThemedText>
+        </Pressable>
+
         <View style={styles.tabBarSpacer} />
       </SafeScrollView>
 
@@ -390,5 +444,17 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   logoutText: { fontSize: 15, fontWeight: '600', color: '#E82127' },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginTop: 10,
+  },
+  deleteBtnDisabled: { opacity: 0.6 },
+  deleteText: { fontSize: 15, fontWeight: '600', color: '#E82127' },
   tabBarSpacer: { height: 96 },
 });
