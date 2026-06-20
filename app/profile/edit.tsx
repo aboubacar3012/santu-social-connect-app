@@ -1,5 +1,6 @@
 import { useNavigation, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { ProfileFormData, UpdateProfil } from '@/components/profile/update-profil';
@@ -7,8 +8,8 @@ import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { meToProfileFormData, profileFormToUpdatePayload } from '@/libs/profile-form';
-import { getMeApi, updateProfileWithAvatarApi } from '@/services/profile.service';
-import type { MeApiUser } from '@/types/profile';
+import { fetchProfileMe, profileQueryKeys } from '@/libs/tanstack/profile-query';
+import { updateProfileWithAvatarApi } from '@/services/profile.service';
 
 const ACCENT = '#0077B6';
 const PAGE_BG = '#F2F4F7';
@@ -70,42 +71,33 @@ export default function EditProfileScreen() {
   const theme = Colors.light;
   const router = useRouter();
   const navigation = useNavigation();
-  const { token, isReady } = useAuth();
+  const queryClient = useQueryClient();
+  const { token, isReady, user } = useAuth();
 
-  const [me, setMe] = useState<MeApiUser | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [canSave, setCanSave] = useState(false);
   const [saving, setSaving] = useState(false);
   const saveRef = useRef<(() => Promise<void>) | null>(null);
 
-  const fetchProfile = useCallback(async () => {
-    if (!isReady) return;
+  const {
+    data: me = null,
+    isPending,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: profileQueryKeys.me(user?.id),
+    queryFn: () => fetchProfileMe(token!),
+    enabled: isReady && !!token,
+  });
 
-    if (!token) {
-      setMe(null);
-      setLoading(false);
-      setError('Session expirée. Reconnectez-vous.');
-      return;
-    }
+  const loading = !isReady || (!!token && isPending);
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { user: profile } = await getMeApi(token);
-      setMe(profile);
-    } catch (err: unknown) {
-      setMe(null);
-      setError(err instanceof Error ? err.message : 'Impossible de charger le profil.');
-    } finally {
-      setLoading(false);
-    }
-  }, [isReady, token]);
-
-  useEffect(() => {
-    void fetchProfile();
-  }, [fetchProfile]);
+  const error = isReady && !token
+    ? 'Session expirée. Reconnectez-vous.'
+    : queryError instanceof Error
+      ? queryError.message
+      : queryError
+        ? 'Impossible de charger le profil.'
+        : null;
 
   const initial = useMemo(
     () => (me ? meToProfileFormData(me) : EMPTY_PROFILE),
@@ -123,6 +115,7 @@ export default function EditProfileScreen() {
     try {
       const payload = profileFormToUpdatePayload(data);
       await updateProfileWithAvatarApi(token, payload, data.avatarUri);
+      await queryClient.invalidateQueries({ queryKey: profileQueryKeys.me(user?.id) });
       router.back();
     } catch (err: unknown) {
       Alert.alert(
@@ -131,7 +124,7 @@ export default function EditProfileScreen() {
       );
       throw err;
     }
-  }, [router, token]);
+  }, [queryClient, router, token, user?.id]);
 
   const handleFormStateChange = useCallback(
     (state: { canSave: boolean; saving: boolean; save: () => Promise<void> }) => {
@@ -173,7 +166,7 @@ export default function EditProfileScreen() {
             {error ?? 'Profil introuvable.'}
           </ThemedText>
           {error ? (
-            <Pressable onPress={() => void fetchProfile()}>
+            <Pressable onPress={() => void refetch()}>
               <ThemedText style={[styles.retryText, { color: ACCENT }]}>Réessayer</ThemedText>
             </Pressable>
           ) : null}

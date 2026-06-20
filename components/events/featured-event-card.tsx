@@ -116,7 +116,7 @@ export function FeaturedEventCard({
 
         <View style={styles.featuredMetaRow}>
           <MaterialIcons name="place" size={14} color="rgba(255,255,255,0.78)" />
-          <ThemedText style={styles.featuredMetaText} numberOfLines={1}>
+          <ThemedText style={styles.featuredMetaText} numberOfLines={2}>
             {address}
           </ThemedText>
         </View>

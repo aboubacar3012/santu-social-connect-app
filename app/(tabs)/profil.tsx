@@ -1,6 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { ProfileAccountSection } from '@/components/profile/profile-account-section';
@@ -13,10 +14,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { isUserAdmin } from '@/libs/auth';
 import { meToProfileFormData } from '@/libs/profile-form';
 import { USER_ROLE_LABELS, type UserRoleApi } from '@/libs/profile-status';
+import { fetchProfileMe, profileQueryKeys } from '@/libs/tanstack/profile-query';
 import { getProfileInitials } from '@/services/profil-view.service';
 import {
   deleteAccountApi,
-  getMeApi,
   updateProfileApi,
 } from '@/services/profile.service';
 import type { MeApiUser } from '@/types/profile';
@@ -35,11 +36,9 @@ function formatPhoneE164(e164: string): string {
 export default function ProfilScreen() {
   const theme = Colors.light;
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { signOut, user, token, isReady } = useAuth();
 
-  const [me, setMe] = useState<MeApiUser | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showPhonePublic, setShowPhonePublic] = useState(false);
   const [showEmailPublic, setShowEmailPublic] = useState(false);
@@ -51,41 +50,47 @@ export default function ProfilScreen() {
   const divider = 'rgba(0,0,0,0.06)';
 
   const applyMe = useCallback((next: MeApiUser) => {
-    setMe(next);
+    queryClient.setQueryData(profileQueryKeys.me(user?.id), next);
     setShowEmailPublic(Boolean(next.showEmailInDirectory));
     setShowPhonePublic(Boolean(next.showPhoneInDirectory));
     setDirectoryVisible(Boolean(next.directoryVisible));
-  }, []);
+  }, [queryClient, user?.id]);
 
-  const fetchProfile = useCallback(async () => {
-    if (!isReady) return;
+  const {
+    data: me = null,
+    isPending,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: profileQueryKeys.me(user?.id),
+    queryFn: () => fetchProfileMe(token!),
+    enabled: isReady && !!token,
+  });
 
-    if (!token) {
-      setMe(null);
-      setLoading(false);
-      setError('Session expirée. Reconnectez-vous.');
-      return;
-    }
+  const loading = !isReady || (!!token && isPending);
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { user: profile } = await getMeApi(token);
-      applyMe(profile);
-    } catch (err: unknown) {
-      setMe(null);
-      setError(err instanceof Error ? err.message : 'Impossible de charger le profil.');
-    } finally {
-      setLoading(false);
-    }
-  }, [applyMe, isReady, token]);
+  const error = isReady && !token
+    ? 'Session expirée. Reconnectez-vous.'
+    : queryError instanceof Error
+      ? queryError.message
+      : queryError
+        ? 'Impossible de charger le profil.'
+        : null;
 
   useFocusEffect(
     useCallback(() => {
-      void fetchProfile();
-    }, [fetchProfile]),
+      if (isReady && token) {
+        void refetch();
+      }
+    }, [isReady, refetch, token]),
   );
+
+  useEffect(() => {
+    if (!me) return;
+    setShowEmailPublic(Boolean(me.showEmailInDirectory));
+    setShowPhonePublic(Boolean(me.showPhoneInDirectory));
+    setDirectoryVisible(Boolean(me.directoryVisible));
+  }, [me]);
 
   const profile = useMemo(() => (me ? meToProfileFormData(me) : null), [me]);
 
@@ -208,7 +213,7 @@ export default function ProfilScreen() {
           <View style={[styles.banner, { backgroundColor: cardBg, borderColor: divider }]}>
             <MaterialIcons name="error-outline" size={18} color="#E82127" />
             <ThemedText style={[styles.bannerText, { color: theme.text }]}>{error}</ThemedText>
-            <Pressable onPress={() => void fetchProfile()}>
+            <Pressable onPress={() => void refetch()}>
               <ThemedText style={[styles.retryText, { color: ACCENT }]}>Réessayer</ThemedText>
             </Pressable>
           </View>

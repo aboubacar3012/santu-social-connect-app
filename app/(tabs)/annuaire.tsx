@@ -1,4 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useQuery } from '@tanstack/react-query';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
@@ -9,7 +10,7 @@ import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { resolveProfileImageUri } from '@/libs/profile';
-import { listMembersApi } from '@/services/member-list.service';
+import { fetchMembersList, membersQueryKeys } from '@/libs/tanstack/members-query';
 import type { Member } from '@/types/member';
 
 const PAGE_BG = '#F2F4F7';
@@ -49,29 +50,27 @@ export default function AnnuaireScreen() {
   const fieldBg = 'rgba(0,0,0,0.04)';
   const divider = 'rgba(0,0,0,0.06)';
   const searchBorder = searchFocused ? ACCENT : divider;
-  const [allMembers, setAllMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchMembers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const {
+    data: allMembers = [],
+    isPending: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: membersQueryKeys.list(),
+    queryFn: fetchMembersList,
+  });
 
-    try {
-      const { members } = await listMembersApi();
-      setAllMembers(members);
-    } catch (err: unknown) {
-      setAllMembers([]);
-      setError(err instanceof Error ? err.message : 'Impossible de charger l’annuaire.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const error = queryError instanceof Error
+    ? queryError.message
+    : queryError
+      ? 'Impossible de charger l’annuaire.'
+      : null;
 
   useFocusEffect(
     useCallback(() => {
-      void fetchMembers();
-    }, [fetchMembers]),
+      void refetch();
+    }, [refetch]),
   );
 
   const members = useMemo(() => {
@@ -123,7 +122,7 @@ export default function AnnuaireScreen() {
         <View style={[styles.banner, { backgroundColor: cardBg, borderColor: divider }]}>
           <MaterialIcons name="error-outline" size={18} color="#E82127" />
           <ThemedText style={[styles.bannerText, { color: theme.text }]}>{error}</ThemedText>
-          <Pressable onPress={() => void fetchMembers()}>
+          <Pressable onPress={() => void refetch()}>
             <ThemedText style={[styles.retryText, { color: ACCENT }]}>Réessayer</ThemedText>
           </Pressable>
         </View>

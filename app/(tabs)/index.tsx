@@ -1,4 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useQuery } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -21,10 +22,10 @@ import {
   formatEventSchedule,
   isEventPast,
 } from '@/libs/event-schedule';
+import { eventsQueryKeys, fetchEventsList } from '@/libs/tanstack/events-query';
 import { Colors } from '@/constants/theme';
 import { useEventFavorites } from '@/contexts/event-favorites-context';
 import { useTabChrome } from '@/contexts/tab-chrome-context';
-import { listEventsApi } from '@/services/event-list.service';
 
 const ACCENT = '#0077B6';
 const PAGE_BG = '#F2F4F7';
@@ -44,34 +45,28 @@ export default function EventsScreen() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [expandedTitleEventId, setExpandedTitleEventId] = useState<string | null>(null);
   const [expandedDescriptionEventId, setExpandedDescriptionEventId] = useState<string | null>(null);
-  const [allEvents, setAllEvents] = useState<EventItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchEvents = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const {
+    data: allEvents = [],
+    isPending: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: eventsQueryKeys.list(typeFilter),
+    queryFn: () => fetchEventsList(typeFilter),
+  });
 
-    try {
-      const { events } = await listEventsApi({
-        type: typeFilter === 'All' ? undefined : typeFilter,
-      });
-      setAllEvents(events);
-    } catch (err: unknown) {
-      setAllEvents([]);
-      setError(
-        err instanceof Error ? err.message : 'Impossible de charger les événements.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [typeFilter]);
+  const error = queryError instanceof Error
+    ? queryError.message
+    : queryError
+      ? 'Impossible de charger les événements.'
+      : null;
 
   useFocusEffect(
     useCallback(() => {
       setChromeVisible(true);
-      void fetchEvents();
-    }, [fetchEvents, setChromeVisible]),
+      void refetch();
+    }, [refetch, setChromeVisible]),
   );
 
   const events = useMemo(() => {
@@ -216,7 +211,7 @@ export default function EventsScreen() {
           <View style={[styles.banner, { backgroundColor: cardBg, borderColor: divider }]}>
             <MaterialIcons name="error-outline" size={18} color="#E82127" />
             <ThemedText style={[styles.bannerText, { color: theme.text }]}>{error}</ThemedText>
-            <Pressable onPress={() => void fetchEvents()}>
+            <Pressable onPress={() => void refetch()}>
               <ThemedText style={[styles.retryText, { color: ACCENT }]}>Réessayer</ThemedText>
             </Pressable>
           </View>

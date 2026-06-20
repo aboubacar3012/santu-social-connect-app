@@ -1,4 +1,5 @@
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -8,6 +9,7 @@ import 'react-native-reanimated';
 import { Colors } from '@/constants/theme';
 import { AuthProvider } from '@/contexts/auth-context';
 import { EventFavoritesProvider } from '@/contexts/event-favorites-context';
+import { queryClient } from '@/libs/tanstack/query-client';
 
 /** Largeur max type tablette (iPad) — l’app reste centrée sur desktop / grands écrans. */
 const TABLET_MAX_WIDTH = 768;
@@ -25,9 +27,10 @@ export default function RootLayout() {
     <View style={[styles.shell, { backgroundColor: '#D8DCE3' }]}>
       <View style={[styles.frame, { backgroundColor: theme.background }]}>
         <ThemeProvider value={DefaultTheme}>
-          <AuthProvider>
-            <EventFavoritesProvider>
-              <Stack>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <EventFavoritesProvider>
+                <Stack>
                 <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen name="auth/index" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -85,10 +88,11 @@ export default function RootLayout() {
                     headerTitleStyle: { fontWeight: '700', fontSize: 17 },
                   }}
                 />
-              </Stack>
-            </EventFavoritesProvider>
-            <StatusBar style="dark" />
-          </AuthProvider>
+                </Stack>
+              </EventFavoritesProvider>
+            </AuthProvider>
+          </QueryClientProvider>
+          <StatusBar style="dark" />
         </ThemeProvider>
       </View>
     </View>
