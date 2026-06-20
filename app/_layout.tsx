@@ -33,11 +33,29 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
                 <Stack.Screen
+                  name="profile/edit"
+                  options={{
+                    title: 'Modifier mon profil',
+                    headerBackTitle: 'Retour',
+                    headerShadowVisible: false,
+                    headerStyle: {
+                      backgroundColor: '#EDEFF2',
+                    },
+                    headerTintColor: '#11181C',
+                    headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+                  }}
+                />
+                <Stack.Screen
                   name="member/[id]"
                   options={{
-                    presentation: 'modal',
-                    title: '',
-                    headerShown: false,
+                    title: 'Profil',
+                    headerBackTitle: 'Retour',
+                    headerShadowVisible: false,
+                    headerStyle: {
+                      backgroundColor: '#EDEFF2',
+                    },
+                    headerTintColor: '#11181C',
+                    headerTitleStyle: { fontWeight: '700', fontSize: 17 },
                   }}
                 />
                 <Stack.Screen

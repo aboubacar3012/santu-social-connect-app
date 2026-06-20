@@ -1,11 +1,8 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
-  Modal,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -36,15 +33,20 @@ export type ProfileFormData = {
   showPhoneInDirectory: boolean;
 };
 
-export type UpdateProfilProps = {
-  visible: boolean;
-  initial: ProfileFormData;
-  phone?: string;
-  onCancel: () => void;
-  onSave: (data: ProfileFormData) => void | Promise<void>;
+export type UpdateProfilFormState = {
+  canSave: boolean;
+  saving: boolean;
+  save: () => Promise<void>;
 };
 
-export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: UpdateProfilProps) {
+export type UpdateProfilProps = {
+  initial: ProfileFormData;
+  phone?: string;
+  onSave: (data: ProfileFormData) => void | Promise<void>;
+  onFormStateChange?: (state: UpdateProfilFormState) => void;
+};
+
+export function UpdateProfil({ initial, phone, onSave, onFormStateChange }: UpdateProfilProps) {
   const theme = Colors.light;
   const insets = useSafeAreaInsets();
 
@@ -66,8 +68,7 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
   const [showPhoneInDirectory, setShowPhoneInDirectory] = useState(initial.showPhoneInDirectory);
   const [saving, setSaving] = useState(false);
 
-  React.useEffect(() => {
-    if (!visible) return;
+  useEffect(() => {
     setName(initial.name);
     setJobTitle(initial.jobTitle);
     setCompany(initial.company);
@@ -79,9 +80,9 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
     setDirectoryVisible(initial.directoryVisible);
     setShowEmailInDirectory(initial.showEmailInDirectory);
     setShowPhoneInDirectory(initial.showPhoneInDirectory);
-  }, [visible, initial]);
+  }, [initial]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
 
@@ -103,190 +104,188 @@ export function UpdateProfil({ visible, initial, phone, onCancel, onSave }: Upda
     } finally {
       setSaving(false);
     }
-  };
+  }, [
+    avatarUri,
+    bio,
+    city,
+    company,
+    directoryVisible,
+    email,
+    jobTitle,
+    name,
+    onSave,
+    quartier,
+    showEmailInDirectory,
+    showPhoneInDirectory,
+  ]);
 
   const canSave = name.trim().length > 0 && !saving;
 
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  const onFormStateChangeRef = useRef(onFormStateChange);
+  onFormStateChangeRef.current = onFormStateChange;
+
+  useEffect(() => {
+    onFormStateChangeRef.current?.({
+      canSave,
+      saving,
+      save: () => handleSaveRef.current(),
+    });
+  }, [canSave, saving]);
+
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onCancel}>
-      <KeyboardAvoidingView
-        style={[styles.root, { backgroundColor: pageBg }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <KeyboardAvoidingView
+      style={[styles.root, { backgroundColor: pageBg }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.toolbar, { paddingTop: insets.top + 8, borderBottomColor: divider }]}>
-          <Pressable onPress={onCancel} hitSlop={12} style={styles.toolbarBtn}>
-            <ThemedText style={[styles.toolbarBtnText, { color: theme.icon }]}>Annuler</ThemedText>
-          </Pressable>
-          <ThemedText style={[styles.toolbarTitle, { color: theme.text }]}>Modifier mon profil</ThemedText>
-          <Pressable onPress={() => void handleSave()} disabled={!canSave} hitSlop={12} style={styles.toolbarBtn}>
-            {saving ? (
-              <ActivityIndicator size="small" color={ACCENT} />
-            ) : (
-              <ThemedText style={[styles.toolbarBtnText, { color: canSave ? ACCENT : theme.icon, fontWeight: '700' }]}>
-                Enregistrer
-              </ThemedText>
-            )}
-          </Pressable>
+        <View style={[styles.section, { backgroundColor: cardBg, borderColor: divider }]}>
+          <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>IDENTITÉ</ThemedText>
+          <UploadFile
+            label="Photo de profil"
+            value={avatarUri}
+            onChange={setAvatarUri}
+            variant="avatar"
+            hint="Visible dans l’annuaire"
+            themeMuted={theme.icon}
+            fieldBg={fieldBg}
+            borderColor={divider}
+            tint={ACCENT}
+            compact
+          />
+          <IconTextField
+            label="Nom affiché"
+            value={name}
+            onChangeText={setName}
+            placeholder="Votre prénom ou nom"
+            icon="person"
+            themeText={theme.text}
+            themeMuted={theme.icon}
+            fieldBg={fieldBg}
+            borderColor={divider}
+          />
+          <IconTextField
+            label="Poste"
+            value={jobTitle}
+            onChangeText={setJobTitle}
+            placeholder="Ex. Fondateur, CEO…"
+            icon="work"
+            themeText={theme.text}
+            themeMuted={theme.icon}
+            fieldBg={fieldBg}
+            borderColor={divider}
+          />
+          <IconTextField
+            label="Entreprise"
+            value={company}
+            onChangeText={setCompany}
+            placeholder="Nom de l’entreprise"
+            icon="business"
+            themeText={theme.text}
+            themeMuted={theme.icon}
+            fieldBg={fieldBg}
+            borderColor={divider}
+          />
+          <IconTextField
+            label="Ville"
+            value={city}
+            onChangeText={setCity}
+            placeholder="Ex. Marseille"
+            icon="location-city"
+            themeText={theme.text}
+            themeMuted={theme.icon}
+            fieldBg={fieldBg}
+            borderColor={divider}
+          />
         </View>
 
-        <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={[styles.section, { backgroundColor: cardBg, borderColor: divider }]}>
-            <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>IDENTITÉ</ThemedText>
-            <UploadFile
-              label="Photo de profil"
-              value={avatarUri}
-              onChange={setAvatarUri}
-              variant="avatar"
-              hint="Visible dans l’annuaire"
-              themeMuted={theme.icon}
-              fieldBg={fieldBg}
-              borderColor={divider}
-              tint={ACCENT}
-              compact
-            />
-            <IconTextField
-              label="Nom affiché"
-              value={name}
-              onChangeText={setName}
-              placeholder="Votre prénom ou nom"
-              icon="person"
-              themeText={theme.text}
-              themeMuted={theme.icon}
-              fieldBg={fieldBg}
-              borderColor={divider}
-            />
-            <IconTextField
-              label="Poste"
-              value={jobTitle}
-              onChangeText={setJobTitle}
-              placeholder="Ex. Fondateur, CEO…"
-              icon="work"
-              themeText={theme.text}
-              themeMuted={theme.icon}
-              fieldBg={fieldBg}
-              borderColor={divider}
-            />
-            <IconTextField
-              label="Entreprise"
-              value={company}
-              onChangeText={setCompany}
-              placeholder="Nom de l’entreprise"
-              icon="business"
-              themeText={theme.text}
-              themeMuted={theme.icon}
-              fieldBg={fieldBg}
-              borderColor={divider}
-            />
-            <IconTextField
-              label="Ville"
-              value={city}
-              onChangeText={setCity}
-              placeholder="Ex. Marseille"
-              icon="location-city"
-              themeText={theme.text}
-              themeMuted={theme.icon}
-              fieldBg={fieldBg}
-              borderColor={divider}
-            />
-            {/* <IconTextField
-              label="Quartier"
-              value={quartier}
-              onChangeText={setQuartier}
-              placeholder="Ex. Joliette, Vieux-Port…"
-              icon="place"
-              themeText={theme.text}
-              themeMuted={theme.icon}
-              fieldBg={fieldBg}
-              borderColor={divider}
-            /> */}
-          </View>
+        <View style={[styles.section, { backgroundColor: cardBg, borderColor: divider }]}>
+          <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>ANNUAIRE</ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: theme.icon }]}>
+            Contrôlez votre visibilité publique dans le réseau.
+          </ThemedText>
+          <ToggleRow
+            label="Apparaître dans l'annuaire"
+            hint="Votre profil sera listé dans l'annuaire des entrepreneurs."
+            value={directoryVisible}
+            onValueChange={setDirectoryVisible}
+            themeText={theme.text}
+            themeMuted={theme.icon}
+            divider={divider}
+          />
+          <ToggleRow
+            label="E-mail visible"
+            hint="Affiche votre e-mail sur votre fiche publique."
+            value={showEmailInDirectory}
+            onValueChange={setShowEmailInDirectory}
+            themeText={theme.text}
+            themeMuted={theme.icon}
+            divider={divider}
+          />
+          <ToggleRow
+            label="Téléphone visible"
+            hint="Affiche votre numéro sur votre fiche publique."
+            value={showPhoneInDirectory}
+            onValueChange={setShowPhoneInDirectory}
+            themeText={theme.text}
+            themeMuted={theme.icon}
+            divider={divider}
+          />
+        </View>
 
-          <View style={[styles.section, { backgroundColor: cardBg, borderColor: divider }]}>
-            <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>ANNUAIRE</ThemedText>
-            <ThemedText style={[styles.sectionHint, { color: theme.icon }]}>
-              Contrôlez votre visibilité publique dans le réseau.
-            </ThemedText>
-            <ToggleRow
-              label="Apparaître dans l'annuaire"
-              hint="Votre profil sera listé dans l'annuaire des entrepreneurs."
-              value={directoryVisible}
-              onValueChange={setDirectoryVisible}
-              themeText={theme.text}
-              themeMuted={theme.icon}
-              divider={divider}
+        <View style={[styles.section, { backgroundColor: cardBg, borderColor: divider }]}>
+          <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>À PROPOS</ThemedText>
+          <View style={styles.fieldGroup}>
+            <ThemedText style={[styles.fieldLabel, { color: theme.icon }]}>Bio</ThemedText>
+            <TextInput
+              value={bio}
+              onChangeText={setBio}
+              placeholder="Présentez-vous en quelques lignes…"
+              placeholderTextColor={theme.icon}
+              style={[styles.bioInput, { color: theme.text, backgroundColor: fieldBg, borderColor: divider }]}
+              multiline
+              textAlignVertical="top"
+              maxLength={280}
             />
-            <ToggleRow
-              label="E-mail visible"
-              hint="Affiche votre e-mail sur votre fiche publique."
-              value={showEmailInDirectory}
-              onValueChange={setShowEmailInDirectory}
-              themeText={theme.text}
-              themeMuted={theme.icon}
-              divider={divider}
-            />
-            <ToggleRow
-              label="Téléphone visible"
-              hint="Affiche votre numéro sur votre fiche publique."
-              value={showPhoneInDirectory}
-              onValueChange={setShowPhoneInDirectory}
-              themeText={theme.text}
-              themeMuted={theme.icon}
-              divider={divider}
-            />
+            <ThemedText style={[styles.charCount, { color: theme.icon }]}>{bio.length}/280</ThemedText>
           </View>
+        </View>
 
-          <View style={[styles.section, { backgroundColor: cardBg, borderColor: divider }]}>
-            <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>À PROPOS</ThemedText>
+        <View style={[styles.section, { backgroundColor: cardBg, borderColor: divider }]}>
+          <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>COORDONNÉES</ThemedText>
+          <IconTextField
+            label="E-mail"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="vous@exemple.com"
+            icon="email"
+            themeText={theme.text}
+            themeMuted={theme.icon}
+            fieldBg={fieldBg}
+            borderColor={divider}
+          />
+          {phone ? (
             <View style={styles.fieldGroup}>
-              <ThemedText style={[styles.fieldLabel, { color: theme.icon }]}>Bio</ThemedText>
-              <TextInput
-                value={bio}
-                onChangeText={setBio}
-                placeholder="Présentez-vous en quelques lignes…"
-                placeholderTextColor={theme.icon}
-                style={[styles.bioInput, { color: theme.text, backgroundColor: fieldBg, borderColor: divider }]}
-                multiline
-                textAlignVertical="top"
-                maxLength={280}
-              />
-              <ThemedText style={[styles.charCount, { color: theme.icon }]}>{bio.length}/280</ThemedText>
-            </View>
-          </View>
-
-          <View style={[styles.section, { backgroundColor: cardBg, borderColor: divider }]}>
-            <ThemedText style={[styles.sectionKicker, { color: theme.icon }]}>COORDONNÉES</ThemedText>
-            <IconTextField
-              label="E-mail"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="vous@exemple.com"
-              icon="email"
-              themeText={theme.text}
-              themeMuted={theme.icon}
-              fieldBg={fieldBg}
-              borderColor={divider}
-            />
-            {phone ? (
-              <View style={styles.fieldGroup}>
-                <ThemedText style={[styles.fieldLabel, { color: theme.icon }]}>Téléphone</ThemedText>
-                <View style={[styles.readOnlyField, { backgroundColor: fieldBg, borderColor: divider }]}>
-                  <MaterialIcons name="phone" size={16} color={theme.icon} />
-                  <ThemedText style={[styles.readOnlyText, { color: theme.text }]}>{phone}</ThemedText>
-                  <MaterialIcons name="lock" size={14} color={theme.icon} />
-                </View>
-                <ThemedText style={[styles.fieldHint, { color: theme.icon }]}>
-                  Modifiable depuis les paramètres de connexion.
-                </ThemedText>
+              <ThemedText style={[styles.fieldLabel, { color: theme.icon }]}>Téléphone</ThemedText>
+              <View style={[styles.readOnlyField, { backgroundColor: fieldBg, borderColor: divider }]}>
+                <MaterialIcons name="phone" size={16} color={theme.icon} />
+                <ThemedText style={[styles.readOnlyText, { color: theme.text }]}>{phone}</ThemedText>
+                <MaterialIcons name="lock" size={14} color={theme.icon} />
               </View>
-            ) : null}
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+              <ThemedText style={[styles.fieldHint, { color: theme.icon }]}>
+                Modifiable depuis les paramètres de connexion.
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -341,17 +340,6 @@ const toggleStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  toolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  toolbarBtn: { minWidth: 80 },
-  toolbarBtnText: { fontSize: 15, fontWeight: '600' },
-  toolbarTitle: { fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
   scrollContent: { padding: 16, gap: 14 },
   section: {
     borderRadius: 16,

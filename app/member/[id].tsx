@@ -1,5 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +14,7 @@ import type { Member } from '@/types/member';
 const PAGE_BG = '#F2F4F7';
 const ACCENT = '#0077B6';
 
-export default function MemberModalScreen() {
+export default function MemberScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const insets = useSafeAreaInsets();
   const theme = Colors.light;
@@ -57,8 +57,16 @@ export default function MemberModalScreen() {
     return avatar ? { ...member, avatar } : member;
   }, [member]);
 
+  const screenTitle = displayMember
+    ? `${displayMember.firstName} ${displayMember.lastName}`
+    : loading
+      ? 'Chargement…'
+      : 'Profil';
+
   return (
-    <View style={[styles.root, { backgroundColor: pageBg }]}>
+    <>
+      <Stack.Screen options={{ title: screenTitle }} />
+      <View style={[styles.root, { backgroundColor: pageBg }]}>
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator color={ACCENT} />
@@ -83,7 +91,8 @@ export default function MemberModalScreen() {
           ) : null}
         </View>
       )}
-    </View>
+      </View>
+    </>
   );
 }
 

@@ -12,7 +12,7 @@ import {
 } from '@/components/events/event-image-placeholder';
 import { ThemedText } from '@/components/shared/themed-text';
 
-const FEATURED_IMAGE_OPACITY = 0.42;
+const FEATURED_IMAGE_OPACITY = 0.40;
 const FEATURED_TAB_BAR_OFFSET = 96;
 const SCRIM_BANDS = 16;
 const SCRIM_MAX_HEIGHT = 72;

@@ -181,7 +181,7 @@ export default function EventsScreen() {
             <ActivityIndicator color={ACCENT} />
           </View>
         ) : events.length === 0 ? (
-          <View style={[styles.empty, styles.padded, { backgroundColor: cardBg, borderColor: divider }]}>
+          <View style={[styles.empty, styles.padded, { backgroundColor: cardBg, borderColor: divider, marginTop: insets.top + 80 }]}>
             <MaterialIcons name="event-busy" size={32} color={theme.icon} />
             <ThemedText style={[styles.emptyText, { color: theme.icon }]}>
               {favoritesOnly
@@ -288,5 +288,5 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  emptyText: { fontSize: 14, fontWeight: '500', textAlign: 'center', maxWidth: 280 },
+  emptyText: { fontSize: 14, fontWeight: '500', textAlign: 'center', maxWidth: 280, },
 });

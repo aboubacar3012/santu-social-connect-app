@@ -6,39 +6,23 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-nat
 import { ProfileAccountSection } from '@/components/profile/profile-account-section';
 import { ProfileCard } from '@/components/profile/profile-card';
 import { ProfileContactCard } from '@/components/profile/profile-contact-card';
-import { ProfileFormData, UpdateProfil } from '@/components/profile/update-profil';
 import SafeScrollView from '@/components/shared/scroll-view';
 import { ThemedText } from '@/components/shared/themed-text';
 import { Colors } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { isUserAdmin } from '@/libs/auth';
-import { meToProfileFormData, profileFormToUpdatePayload } from '@/libs/profile-form';
+import { meToProfileFormData } from '@/libs/profile-form';
 import { USER_ROLE_LABELS, type UserRoleApi } from '@/libs/profile-status';
 import { getProfileInitials } from '@/services/profil-view.service';
 import {
   deleteAccountApi,
   getMeApi,
   updateProfileApi,
-  updateProfileWithAvatarApi,
 } from '@/services/profile.service';
 import type { MeApiUser } from '@/types/profile';
 
 const ACCENT = '#0077B6';
 const PAGE_BG = '#F2F4F7';
-
-const EMPTY_PROFILE: ProfileFormData = {
-  name: '',
-  jobTitle: '',
-  company: '',
-  city: '',
-  quartier: '',
-  bio: '',
-  email: '',
-  avatarUri: null,
-  directoryVisible: false,
-  showEmailInDirectory: false,
-  showPhoneInDirectory: false,
-};
 
 function formatPhoneE164(e164: string): string {
   const d = e164.replace(/\D/g, '');
@@ -56,7 +40,6 @@ export default function ProfilScreen() {
   const [me, setMe] = useState<MeApiUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showPhonePublic, setShowPhonePublic] = useState(false);
   const [showEmailPublic, setShowEmailPublic] = useState(false);
@@ -104,10 +87,7 @@ export default function ProfilScreen() {
     }, [fetchProfile]),
   );
 
-  const profile = useMemo(
-    () => (me ? meToProfileFormData(me) : EMPTY_PROFILE),
-    [me],
-  );
+  const profile = useMemo(() => (me ? meToProfileFormData(me) : null), [me]);
 
   const phone = me?.phoneE164
     ? formatPhoneE164(me.phoneE164)
@@ -115,40 +95,14 @@ export default function ProfilScreen() {
       ? formatPhoneE164(user.phoneE164)
       : '—';
 
-  const email = profile.email || user?.email?.trim() || '—';
+  const email = profile?.email || user?.email?.trim() || '—';
   const isAdmin = isUserAdmin(user);
   const subscriptionLabel = me
     ? (USER_ROLE_LABELS[(me.role ?? 'freemium') as UserRoleApi] ?? me.role)
     : undefined;
   const avatarInitial = me
     ? getProfileInitials(me)
-    : profile.name.charAt(0).toUpperCase() || '?';
-
-  const editInitial = useMemo<ProfileFormData>(() => profile, [profile]);
-
-  const handleSaveProfile = async (data: ProfileFormData) => {
-    if (!token) {
-      Alert.alert('Session expirée', 'Reconnectez-vous pour modifier votre profil.');
-      return;
-    }
-
-    try {
-      const payload = profileFormToUpdatePayload(data);
-      const { user: updated } = await updateProfileWithAvatarApi(
-        token,
-        payload,
-        data.avatarUri,
-      );
-      applyMe(updated);
-      setIsEditing(false);
-    } catch (err: unknown) {
-      Alert.alert(
-        'Enregistrement',
-        err instanceof Error ? err.message : 'Impossible de mettre à jour le profil.',
-      );
-      throw err;
-    }
-  };
+    : profile?.name.charAt(0).toUpperCase() || '?';
 
   const handleToggleEmailPublic = async (next: boolean) => {
     setShowEmailPublic(next);
@@ -267,7 +221,7 @@ export default function ProfilScreen() {
               Chargement du profil…
             </ThemedText>
           </View>
-        ) : (
+        ) : profile ? (
           <>
             <View style={styles.profileCardWrap}>
               <ProfileCard
@@ -279,7 +233,7 @@ export default function ProfilScreen() {
                 company={profile.company}
                 city={profile.city}
                 bio={profile.bio}
-                onEditPress={() => setIsEditing(true)}
+                onEditPress={() => router.push('/profile/edit')}
               />
             </View>
 
@@ -317,7 +271,7 @@ export default function ProfilScreen() {
               </View>
             </View>
           </>
-        )}
+        ) : null}
 
         {isAdmin ? (
           <View style={[styles.actionRow, { backgroundColor: cardBg, borderColor: divider }]}>
@@ -370,14 +324,6 @@ export default function ProfilScreen() {
 
         <View style={styles.tabBarSpacer} />
       </SafeScrollView>
-
-      <UpdateProfil
-        visible={isEditing}
-        initial={editInitial}
-        phone={phone}
-        onCancel={() => setIsEditing(false)}
-        onSave={handleSaveProfile}
-      />
     </>
   );
 }
