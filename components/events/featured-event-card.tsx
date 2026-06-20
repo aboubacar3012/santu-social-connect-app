@@ -86,9 +86,7 @@ export function FeaturedEventCard({
           contentFit="cover"
         />
       ) : (
-        <EventImagePlaceholder
-          style={[styles.featuredImage, { opacity: FEATURED_IMAGE_OPACITY }]}
-        />
+        <EventImagePlaceholder dateLabel={dateLabel} style={styles.featuredImage} />
       )}
 
       <HeroScrim />

@@ -165,7 +165,7 @@ export function EventCard({
         {showImage ? (
           <Image source={{ uri: image }} style={styles.heroImage} contentFit="cover" />
         ) : (
-          <EventImagePlaceholder style={styles.heroImage} compact />
+          <EventImagePlaceholder dateLabel={dateLabel} style={styles.heroImage} compact />
         )}
 
         <View style={styles.heroTop}>

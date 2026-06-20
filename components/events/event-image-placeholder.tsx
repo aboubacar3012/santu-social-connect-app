@@ -1,49 +1,42 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { ThemedText } from '@/components/shared/themed-text';
+
 export const EVENT_ACCENT = '#0077B6';
+
+const PLACEHOLDER_BG = '#E4E7EC';
+const PLACEHOLDER_TEXT = '#5C6570';
 
 export function hasEventImage(image: string): boolean {
   return image.trim().length > 0;
 }
 
 type EventImagePlaceholderProps = {
+  dateLabel: string;
   style?: StyleProp<ViewStyle>;
   compact?: boolean;
 };
 
 export function EventImagePlaceholder({
+  dateLabel,
   style,
   compact = false,
 }: EventImagePlaceholderProps) {
+  const isRange = dateLabel.includes('–');
+
   return (
-    <View
-      style={[
-        styles.root,
-        compact && styles.rootCompact,
-        { backgroundColor: EVENT_ACCENT },
-        style,
-      ]}
-    >
-      <View
+    <View style={[styles.root, style]}>
+      <ThemedText
         style={[
-          styles.orb,
-          compact ? styles.orbLeftCompact : styles.orbLeft,
+          styles.dateText,
+          compact && styles.dateTextCompact,
+          isRange && (compact ? styles.dateTextRangeCompact : styles.dateTextRange),
         ]}
-      />
-      <View
-        style={[
-          styles.orb,
-          compact ? styles.orbRightCompact : styles.orbRight,
-          styles.orbFaint,
-        ]}
-      />
-      <MaterialIcons
-        name="event"
-        size={compact ? 48 : 72}
-        color="rgba(255,255,255,0.3)"
-      />
+        numberOfLines={compact ? 3 : 4}
+      >
+        {dateLabel}
+      </ThemedText>
     </View>
   );
 }
@@ -54,39 +47,31 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: PLACEHOLDER_BG,
     overflow: 'hidden',
+    paddingHorizontal: 20,
   },
-  rootCompact: {},
-  orb: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+  dateText: {
+    color: PLACEHOLDER_TEXT,
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+    lineHeight: 32,
+    textAlign: 'center',
   },
-  orbFaint: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
+  dateTextCompact: {
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    lineHeight: 20,
+    paddingHorizontal: 4,
   },
-  orbLeft: {
-    width: 180,
-    height: 180,
-    top: -48,
-    left: -40,
+  dateTextRange: {
+    fontSize: 20,
+    lineHeight: 26,
   },
-  orbLeftCompact: {
-    width: 120,
-    height: 120,
-    top: -36,
-    left: -28,
-  },
-  orbRight: {
-    width: 140,
-    height: 140,
-    bottom: -36,
-    right: -24,
-  },
-  orbRightCompact: {
-    width: 96,
-    height: 96,
-    bottom: -28,
-    right: -16,
+  dateTextRangeCompact: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

@@ -93,7 +93,7 @@ export function EventDetail({
             transition={250}
           />
         ) : (
-          <EventImagePlaceholder style={styles.heroImage} />
+          <EventImagePlaceholder dateLabel={dateLabel} style={styles.heroImage} />
         )}
         <View style={styles.heroOverlay} />
         <View style={styles.heroTopRow}>
