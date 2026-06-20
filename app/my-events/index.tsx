@@ -197,18 +197,6 @@ export default function MyEventsScreen() {
 
                   <View style={styles.eventActions}>
                     <Pressable
-                      onPress={() => router.push(`/event/${event.id}`)}
-                      style={({ pressed }) => [
-                        styles.actionChip,
-                        { backgroundColor: chipBg, opacity: pressed ? 0.8 : 1 },
-                      ]}
-                    >
-                      <MaterialIcons name="visibility" size={16} color={theme.text} />
-                      <ThemedText style={[styles.actionChipText, { color: theme.text }]}>
-                        Voir
-                      </ThemedText>
-                    </Pressable>
-                    <Pressable
                       onPress={() => router.push(`/event/edit/${event.id}`)}
                       style={({ pressed }) => [
                         styles.actionChip,
