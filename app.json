@@ -27,7 +27,7 @@
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.hakimj.santu"
+      "package": "com.hakimj.santuconnect"
     },
     "web": {
       "output": "static",
